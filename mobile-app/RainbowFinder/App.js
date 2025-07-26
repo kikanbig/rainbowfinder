@@ -433,6 +433,17 @@ export default function App() {
   };
 
   /**
+   * Получение градиента для вероятности
+   */
+  const getProbabilityGradient = (probability) => {
+    if (probability >= 80) return ['#10b981', '#059669', '#047857']; // Зеленый
+    if (probability >= 60) return ['#f59e0b', '#d97706', '#b45309']; // Янтарный
+    if (probability >= 40) return ['#ef4444', '#dc2626', '#b91c1c']; // Красный
+    if (probability >= 20) return ['#8b5cf6', '#7c3aed', '#6d28d9']; // Фиолетовый
+    return ['#6b7280', '#4b5563', '#374151']; // Серый
+  };
+
+  /**
    * Получение описания качества
    */
   const getQualityDescription = (quality) => {
@@ -525,8 +536,16 @@ export default function App() {
       >
         {/* Заголовок */}
         <View style={styles.header}>
-          <Text style={styles.title}>🌈 RainbowFinder</Text>
-          <Text style={styles.location}>{locationName}</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.titleEmoji}>🌈</Text>
+            <Text style={styles.title}>RainbowFinder</Text>
+          </View>
+          
+          <View style={styles.locationContainer}>
+            <Ionicons name="location" size={16} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.location}>{locationName}</Text>
+          </View>
+          
           {lastUpdate && (
             <Text style={styles.lastUpdate}>
               Обновлено: {formatTime(lastUpdate)}
@@ -537,29 +556,35 @@ export default function App() {
         {/* Основная карточка вероятности */}
         {rainbowData && (
           <View style={styles.mainCard}>
-            <View style={styles.probabilityContainer}>
-              <Text style={styles.probabilityLabel}>Вероятность радуги</Text>
-              <Text 
-                style={[
-                  styles.probabilityValue,
-                  { color: getProbabilityColor(rainbowData.probability) }
-                ]}
-              >
-                {rainbowData.probability.toFixed(1)}%
-              </Text>
-              <Text style={styles.qualityText}>
-                {getQualityDescription(rainbowData.quality)}
-              </Text>
-            </View>
-            
-            {rainbowData.probability > 30 && (
-              <View style={styles.directionContainer}>
-                <Ionicons name="compass-outline" size={24} color="#374151" />
-                <Text style={styles.directionText}>
-                  Направление: {Math.round(rainbowData.direction.center)}°
+            <LinearGradient
+              colors={getProbabilityGradient(rainbowData.probability)}
+              style={styles.probabilityGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.probabilityContainer}>
+                <Text style={styles.probabilityLabel}>Вероятность радуги</Text>
+                
+                <View style={styles.probabilityValueContainer}>
+                  <Text style={styles.probabilityValue}>
+                    {rainbowData.probability.toFixed(1)}%
+                  </Text>
+                </View>
+                
+                <Text style={styles.qualityText}>
+                  {getQualityDescription(rainbowData.quality)}
                 </Text>
+                
+                {rainbowData.probability > 30 && (
+                  <View style={styles.directionContainer}>
+                    <Ionicons name="compass-outline" size={24} color="white" />
+                    <Text style={styles.directionText}>
+                      {Math.round(rainbowData.direction.center)}° от севера
+                    </Text>
+                  </View>
+                )}
               </View>
-            )}
+            </LinearGradient>
           </View>
         )}
 
@@ -571,70 +596,68 @@ export default function App() {
           userLocation={location}
         />
 
-        {/* Условия */}
+        {/* Научный анализ */}
         {rainbowData && (
           <View style={styles.conditionsCard}>
-            <Text style={styles.cardTitle}>🔬 Научный анализ</Text>
-            
-            <View style={styles.conditionRow}>
-              <Text style={styles.conditionLabel}>☀️ Угол солнца:</Text>
-              <Text style={styles.conditionValue}>
-                {sunData?.position.altitude.toFixed(1)}° 
-                {sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? ' ✅' : ' ❌'}
-              </Text>
-            </View>
-            
-            {/* НОВЫЙ: Недавние осадки */}
-            {weather?.recentRain && (
-              <View style={styles.conditionRow}>
-                <Text style={styles.conditionLabel}>🌧️ Недавний дождь:</Text>
-                <Text style={styles.conditionValue}>
-                  {weather.recentRain.isOptimal ? '✅ ИДЕАЛЬНО!' : 
-                   weather.recentRain.hasRecentRain ? '⚠️ Был' : '❌ Не было'}
-                </Text>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+              style={styles.cardContent}
+            >
+              <View style={styles.cardHeader}>
+                <Ionicons name="flask-outline" size={24} color="#374151" />
+                <Text style={styles.cardTitle}>Научный анализ</Text>
               </View>
-            )}
-            
-            {/* НОВЫЙ: Текущий солнечный свет */}
-            <View style={styles.conditionRow}>
-              <Text style={styles.conditionLabel}>☀️ Солнечный свет:</Text>
-              <Text style={styles.conditionValue}>
-                {weather?.weather[0].description.includes('ясно') || 
-                 weather?.weather[0].description.includes('солнечно') ? '✅ Светит' : 
-                 weather?.clouds.all < 50 ? '🌤️ Частично' : '☁️ Закрыто'}
-              </Text>
-            </View>
-            
-            <View style={styles.conditionRow}>
-              <Text style={styles.conditionLabel}>💧 Влажность:</Text>
-              <Text style={styles.conditionValue}>
-                {weather?.humidity}%
-                {weather?.humidity > 70 ? ' ✅' : ' ❌'}
-              </Text>
-            </View>
-            
-            <View style={styles.conditionRow}>
-              <Text style={styles.conditionLabel}>☁️ Облачность:</Text>
-              <Text style={styles.conditionValue}>
-                {weather?.clouds.all}%
-                {weather?.clouds.all > 20 && weather?.clouds.all < 80 ? ' ✅' : ' ❌'}
-              </Text>
-            </View>
-            
-            <View style={styles.conditionRow}>
-              <Text style={styles.conditionLabel}>👁️ Видимость:</Text>
-              <Text style={styles.conditionValue}>
-                {weather?.visibility ? (weather.visibility / 1000).toFixed(1) : '--'}км
-                {weather?.visibility > 5000 ? ' ✅' : ' ❌'}
-              </Text>
-            </View>
-            
-            <View style={styles.conditionRow}>
-              <Text style={styles.conditionLabel}>🌡️ Температура:</Text>
-              <Text style={styles.conditionValue}>
-                {weather?.temperature.toFixed(1)}°C
-              </Text>
-            </View>
+              
+              <View style={styles.conditionsGrid}>
+                <View style={styles.conditionItem}>
+                  <Text style={styles.conditionIcon}>☀️</Text>
+                  <Text style={styles.conditionLabel}>Угол солнца</Text>
+                  <Text style={styles.conditionValue}>
+                    {sunData?.position.altitude.toFixed(1)}°
+                  </Text>
+                  <View style={[
+                    styles.statusIndicator,
+                    { backgroundColor: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#10b981' : '#ef4444' }
+                  ]} />
+                </View>
+                
+                <View style={styles.conditionItem}>
+                  <Text style={styles.conditionIcon}>💧</Text>
+                  <Text style={styles.conditionLabel}>Влажность</Text>
+                  <Text style={styles.conditionValue}>
+                    {weather?.main?.humidity}%
+                  </Text>
+                  <View style={[
+                    styles.statusIndicator,
+                    { backgroundColor: weather?.main?.humidity > 70 ? '#10b981' : '#ef4444' }
+                  ]} />
+                </View>
+                
+                <View style={styles.conditionItem}>
+                  <Text style={styles.conditionIcon}>☁️</Text>
+                  <Text style={styles.conditionLabel}>Облачность</Text>
+                  <Text style={styles.conditionValue}>
+                    {weather?.clouds?.all}%
+                  </Text>
+                  <View style={[
+                    styles.statusIndicator,
+                    { backgroundColor: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#10b981' : '#ef4444' }
+                  ]} />
+                </View>
+                
+                <View style={styles.conditionItem}>
+                  <Text style={styles.conditionIcon}>👁️</Text>
+                  <Text style={styles.conditionLabel}>Видимость</Text>
+                  <Text style={styles.conditionValue}>
+                    {weather?.visibility ? (weather.visibility / 1000).toFixed(1) : '--'}км
+                  </Text>
+                  <View style={[
+                    styles.statusIndicator,
+                    { backgroundColor: weather?.visibility > 5000 ? '#10b981' : '#ef4444' }
+                  ]} />
+                </View>
+              </View>
+            </LinearGradient>
           </View>
         )}
 
@@ -658,63 +681,114 @@ export default function App() {
         {/* Солнечные события */}
         {sunData && (
           <View style={styles.solarCard}>
-            <Text style={styles.cardTitle}>🌅 Солнечные события</Text>
-            
-            <View style={styles.solarEventsContainer}>
-              <View style={styles.solarEvent}>
-                <Text style={styles.solarEventLabel}>Восход</Text>
-                <Text style={styles.solarEventTime}>
-                  {formatTime(sunData.events.sunrise)}
-                </Text>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+              style={styles.cardContent}
+            >
+              <View style={styles.cardHeader}>
+                <Ionicons name="sunny-outline" size={24} color="#f59e0b" />
+                <Text style={styles.cardTitle}>Солнечные события</Text>
               </View>
               
-              <View style={styles.solarEvent}>
-                <Text style={styles.solarEventLabel}>Закат</Text>
-                <Text style={styles.solarEventTime}>
-                  {formatTime(sunData.events.sunset)}
-                </Text>
+              <View style={styles.solarEventsContainer}>
+                <View style={styles.solarEvent}>
+                  <View style={styles.solarIcon}>
+                    <Ionicons name="sunrise" size={32} color="#f59e0b" />
+                  </View>
+                  <Text style={styles.solarEventLabel}>Восход</Text>
+                  <Text style={styles.solarEventTime}>
+                    {formatTime(sunData.events.sunrise)}
+                  </Text>
+                </View>
+                
+                <View style={styles.solarEvent}>
+                  <View style={styles.solarIcon}>
+                    <Ionicons name="sunny" size={32} color="#fbbf24" />
+                  </View>
+                  <Text style={styles.solarEventLabel}>Полдень</Text>
+                  <Text style={styles.solarEventTime}>
+                    {formatTime(sunData.events.solarNoon)}
+                  </Text>
+                </View>
+                
+                <View style={styles.solarEvent}>
+                  <View style={styles.solarIcon}>
+                    <Ionicons name="sunset" size={32} color="#f97316" />
+                  </View>
+                  <Text style={styles.solarEventLabel}>Закат</Text>
+                  <Text style={styles.solarEventTime}>
+                    {formatTime(sunData.events.sunset)}
+                  </Text>
+                </View>
               </View>
-              
-              <View style={styles.solarEvent}>
-                <Text style={styles.solarEventLabel}>Солн. полдень</Text>
-                <Text style={styles.solarEventTime}>
-                  {formatTime(sunData.events.solarNoon)}
-                </Text>
-              </View>
-            </View>
+            </LinearGradient>
           </View>
         )}
 
         {/* Рекомендации */}
         {rainbowData?.recommendations && rainbowData.recommendations.length > 0 && (
           <View style={styles.recommendationsCard}>
-            <Text style={styles.cardTitle}>💡 Рекомендации</Text>
-            {rainbowData.recommendations.map((recommendation, index) => (
-              <Text key={index} style={styles.recommendationText}>
-                • {recommendation}
-              </Text>
-            ))}
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+              style={styles.cardContent}
+            >
+              <View style={styles.cardHeader}>
+                <Ionicons name="bulb-outline" size={24} color="#8b5cf6" />
+                <Text style={styles.cardTitle}>Рекомендации</Text>
+              </View>
+              
+              {rainbowData.recommendations.map((recommendation, index) => (
+                <View key={index} style={styles.recommendationItem}>
+                  <View style={styles.recommendationBullet} />
+                  <Text style={styles.recommendationText}>
+                    {recommendation}
+                  </Text>
+                </View>
+              ))}
+            </LinearGradient>
           </View>
         )}
 
         {/* Кнопка обновления */}
         <TouchableOpacity 
-          style={styles.refreshButton} 
+          style={styles.modernRefreshButton} 
           onPress={() => updateRainbowData(true)}
           disabled={loading}
+          activeOpacity={0.8}
         >
-          <Ionicons name="refresh-outline" size={24} color="white" />
-          <Text style={styles.refreshButtonText}>Обновить данные</Text>
+          <LinearGradient
+            colors={['#667eea', '#764ba2']}
+            style={styles.refreshButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Ionicons name="refresh-outline" size={24} color="white" />
+            <Text style={styles.refreshButtonText}>Обновить данные</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
-        {/* Информация о приложении */}
+        {/* О приложении */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>О приложении</Text>
-          <Text style={styles.infoText}>
-            RainbowFinder использует точные астрономические расчеты и метеорологические данные 
-            для определения вероятности появления радуги. Основано на физических законах оптики 
-            и угле Декарта (42°).
-          </Text>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.6)']}
+            style={styles.cardContent}
+          >
+            <View style={styles.cardHeader}>
+              <Ionicons name="information-circle-outline" size={24} color="#6366f1" />
+              <Text style={styles.cardTitle}>О приложении</Text>
+            </View>
+            
+            <Text style={styles.infoText}>
+              RainbowFinder использует точные астрономические расчеты и метеорологические данные 
+              для определения вероятности появления радуги. Основано на физических законах оптики 
+              и угле Декарта (42°).
+            </Text>
+            
+            <View style={styles.infoFooter}>
+              <Text style={styles.infoVersion}>Версия 2.0.0</Text>
+              <Text style={styles.infoMadeWith}>Сделано с 💜</Text>
+            </View>
+          </LinearGradient>
         </View>
       </ScrollView>
       
@@ -733,6 +807,50 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
+  },
+  
+  // Современные стили загрузки
+  rainbowLoader: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  rainbowEmoji: {
+    fontSize: 60,
+  },
+  loadingTitle: {
+    color: 'white',
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  loadingProgress: {
+    width: '80%',
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 20,
+  },
+  progressFill: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'white',
+    borderRadius: 3,
   },
   loadingContainer: {
     flex: 1,
@@ -803,179 +921,332 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 35,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  titleEmoji: {
+    fontSize: 42,
+    marginRight: 15,
   },
   title: {
-    fontSize: 32,
+    fontSize: 38,
     fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 5,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 8,
   },
   location: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: 5,
+    color: 'white',
+    marginLeft: 8,
+    fontWeight: '500',
   },
   lastUpdate: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 5,
+    color: 'rgba(255,255,255,0.8)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   mainCard: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 20,
-    padding: 25,
-    marginBottom: 20,
-    alignItems: 'center',
+    borderRadius: 25,
+    marginBottom: 25,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.35,
+    shadowRadius: 25,
+    elevation: 20,
+  },
+  probabilityGradient: {
+    padding: 35,
   },
   probabilityContainer: {
     alignItems: 'center',
   },
   probabilityLabel: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 10,
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 20,
+    textTransform: 'uppercase',
+    letterSpacing: 3,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  probabilityValueContainer: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 30,
+    paddingHorizontal: 35,
+    paddingVertical: 25,
+    marginBottom: 20,
+    shadowColor: 'rgba(0,0,0,0.2)',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
   },
   probabilityValue: {
-    fontSize: 48,
+    fontSize: 64,
     fontWeight: 'bold',
-    marginBottom: 5,
+    color: 'white',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 8,
   },
   qualityText: {
-    fontSize: 18,
-    color: '#374151',
-    fontWeight: '500',
+    fontSize: 22,
+    color: 'white',
+    fontWeight: '600',
+    marginBottom: 25,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   directionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 25,
+    paddingVertical: 15,
+    borderRadius: 20,
+    shadowColor: 'rgba(0,0,0,0.2)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
   },
   directionText: {
-    fontSize: 16,
-    color: '#374151',
-    marginLeft: 10,
-    fontWeight: '500',
+    fontSize: 17,
+    color: 'white',
+    marginLeft: 12,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   conditionsCard: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
+    borderRadius: 25,
+    marginBottom: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  blurBackground: {
+    borderRadius: 25,
+  },
+  cardContent: {
+    padding: 25,
+    borderRadius: 25,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   cardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginLeft: 12,
+  },
+  conditionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  conditionItem: {
+    width: '48%',
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 15,
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  conditionIcon: {
+    fontSize: 28,
+    marginBottom: 10,
+  },
+  conditionLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: '600',
+  },
+  conditionValue: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#374151',
-    marginBottom: 15,
+    textAlign: 'center',
   },
-  conditionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  conditionLabel: {
-    fontSize: 16,
-    color: '#6b7280',
-    flex: 1,
-  },
-  conditionValue: {
-    fontSize: 16,
-    color: '#374151',
-    fontWeight: '500',
+  statusIndicator: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 2,
   },
   solarCard: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
+    borderRadius: 25,
+    marginBottom: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 20,
+    elevation: 12,
   },
   solarEventsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
   },
   solarEvent: {
     alignItems: 'center',
     flex: 1,
+    padding: 15,
+  },
+  solarIcon: {
+    marginBottom: 12,
   },
   solarEventLabel: {
     fontSize: 14,
     color: '#6b7280',
-    marginBottom: 5,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: '600',
   },
   solarEventTime: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#374151',
     fontWeight: 'bold',
   },
   recommendationsCard: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
+    borderRadius: 25,
+    marginBottom: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  recommendationItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 15,
+  },
+  recommendationBullet: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#8b5cf6',
+    marginTop: 8,
+    marginRight: 15,
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 2,
   },
   recommendationText: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#374151',
-    marginBottom: 8,
-    lineHeight: 22,
+    lineHeight: 24,
+    flex: 1,
+    fontWeight: '500',
   },
-  refreshButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  modernRefreshButton: {
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  refreshButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    marginBottom: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 35,
   },
   refreshButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 10,
+    marginLeft: 12,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   infoCard: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#374151',
-    marginBottom: 10,
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 8,
   },
   infoText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6b7280',
-    lineHeight: 20,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  infoFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(107, 114, 128, 0.2)',
+  },
+  infoVersion: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontWeight: '500',
+  },
+  infoMadeWith: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontWeight: '500',
   },
   recentRainCard: {
     backgroundColor: 'rgba(255,255,255,0.95)',
