@@ -596,68 +596,124 @@ export default function App() {
           userLocation={location}
         />
 
-        {/* Научный анализ */}
+        {/* Современный научный анализ */}
         {rainbowData && (
-          <View style={styles.conditionsCard}>
-            <LinearGradient
-              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
-              style={styles.cardContent}
-            >
-              <View style={styles.cardHeader}>
-                <Ionicons name="flask-outline" size={24} color="#40e0d0" />
-                <Text style={styles.cardTitle}>Научный анализ</Text>
-              </View>
-              
-              <View style={styles.conditionsGrid}>
-                <View style={styles.conditionItem}>
-                  <Text style={styles.conditionIcon}>☀️</Text>
-                  <Text style={styles.conditionLabel}>Угол солнца</Text>
-                  <Text style={styles.conditionValue}>
+          <View style={styles.modernAnalysisContainer}>
+            <Text style={styles.modernAnalysisTitle}>
+              <Ionicons name="flask-outline" size={22} color="#40e0d0" /> Научный анализ
+            </Text>
+            
+            <View style={styles.modernCardsRow}>
+              {/* Карточка угла солнца */}
+              <View style={styles.modernCard}>
+                <LinearGradient
+                  colors={sunData?.position.altitude > 0 && sunData?.position.altitude < 42 
+                    ? ['#7fffd4', '#40e0d0'] 
+                    : ['#ffa07a', '#ff7f50']}
+                  style={styles.modernCardGradient}
+                >
+                  <Text style={styles.modernCardIcon}>☀️</Text>
+                  <Text style={styles.modernCardValue}>
                     {sunData?.position.altitude.toFixed(1)}°
                   </Text>
+                  <Text style={styles.modernCardLabel}>Угол солнца</Text>
                   <View style={[
-                    styles.statusIndicator,
-                    { backgroundColor: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#7fffd4' : '#ffa07a' }
-                  ]} />
-                </View>
-                
-                <View style={styles.conditionItem}>
-                  <Text style={styles.conditionIcon}>💧</Text>
-                  <Text style={styles.conditionLabel}>Влажность</Text>
-                  <Text style={styles.conditionValue}>
+                    styles.modernCardStatus,
+                    { backgroundColor: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#ffffff' : '#fff5f5' }
+                  ]}>
+                    <Text style={[
+                      styles.modernCardStatusText,
+                      { color: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#40e0d0' : '#ff7f50' }
+                    ]}>
+                      {sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? 'Отлично' : 'Не подходит'}
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </View>
+
+              {/* Карточка влажности */}
+              <View style={styles.modernCard}>
+                <LinearGradient
+                  colors={weather?.main?.humidity > 70 
+                    ? ['#7fffd4', '#40e0d0'] 
+                    : ['#ffa07a', '#ff7f50']}
+                  style={styles.modernCardGradient}
+                >
+                  <Text style={styles.modernCardIcon}>💧</Text>
+                  <Text style={styles.modernCardValue}>
                     {weather?.main?.humidity}%
                   </Text>
+                  <Text style={styles.modernCardLabel}>Влажность</Text>
                   <View style={[
-                    styles.statusIndicator,
-                    { backgroundColor: weather?.main?.humidity > 70 ? '#7fffd4' : '#ffa07a' }
-                  ]} />
-                </View>
-                
-                <View style={styles.conditionItem}>
-                  <Text style={styles.conditionIcon}>☁️</Text>
-                  <Text style={styles.conditionLabel}>Облачность</Text>
-                  <Text style={styles.conditionValue}>
+                    styles.modernCardStatus,
+                    { backgroundColor: weather?.main?.humidity > 70 ? '#ffffff' : '#fff5f5' }
+                  ]}>
+                    <Text style={[
+                      styles.modernCardStatusText,
+                      { color: weather?.main?.humidity > 70 ? '#40e0d0' : '#ff7f50' }
+                    ]}>
+                      {weather?.main?.humidity > 70 ? 'Отлично' : 'Низкая'}
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </View>
+            </View>
+
+            <View style={styles.modernCardsRow}>
+              {/* Карточка облачности */}
+              <View style={styles.modernCard}>
+                <LinearGradient
+                  colors={weather?.clouds?.all > 20 && weather?.clouds?.all < 80 
+                    ? ['#7fffd4', '#40e0d0'] 
+                    : ['#ffa07a', '#ff7f50']}
+                  style={styles.modernCardGradient}
+                >
+                  <Text style={styles.modernCardIcon}>☁️</Text>
+                  <Text style={styles.modernCardValue}>
                     {weather?.clouds?.all}%
                   </Text>
+                  <Text style={styles.modernCardLabel}>Облачность</Text>
                   <View style={[
-                    styles.statusIndicator,
-                    { backgroundColor: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#7fffd4' : '#ffa07a' }
-                  ]} />
-                </View>
-                
-                <View style={styles.conditionItem}>
-                  <Text style={styles.conditionIcon}>👁️</Text>
-                  <Text style={styles.conditionLabel}>Видимость</Text>
-                  <Text style={styles.conditionValue}>
+                    styles.modernCardStatus,
+                    { backgroundColor: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#ffffff' : '#fff5f5' }
+                  ]}>
+                    <Text style={[
+                      styles.modernCardStatusText,
+                      { color: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#40e0d0' : '#ff7f50' }
+                    ]}>
+                      {weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? 'Идеально' : 'Не подходит'}
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </View>
+
+              {/* Карточка видимости */}
+              <View style={styles.modernCard}>
+                <LinearGradient
+                  colors={weather?.visibility > 5000 
+                    ? ['#7fffd4', '#40e0d0'] 
+                    : ['#ffa07a', '#ff7f50']}
+                  style={styles.modernCardGradient}
+                >
+                  <Text style={styles.modernCardIcon}>👁️</Text>
+                  <Text style={styles.modernCardValue}>
                     {weather?.visibility ? (weather.visibility / 1000).toFixed(1) : '--'}км
                   </Text>
+                  <Text style={styles.modernCardLabel}>Видимость</Text>
                   <View style={[
-                    styles.statusIndicator,
-                    { backgroundColor: weather?.visibility > 5000 ? '#7fffd4' : '#ffa07a' }
-                  ]} />
-                </View>
+                    styles.modernCardStatus,
+                    { backgroundColor: weather?.visibility > 5000 ? '#ffffff' : '#fff5f5' }
+                  ]}>
+                    <Text style={[
+                      styles.modernCardStatusText,
+                      { color: weather?.visibility > 5000 ? '#40e0d0' : '#ff7f50' }
+                    ]}>
+                      {weather?.visibility > 5000 ? 'Отлично' : 'Плохая'}
+                    </Text>
+                  </View>
+                </LinearGradient>
               </View>
-            </LinearGradient>
+            </View>
           </View>
         )}
 
@@ -779,9 +835,7 @@ export default function App() {
             </View>
             
             <Text style={styles.infoText}>
-              Kate's Rainbow использует точные астрономические расчеты и метеорологические данные 
-              для определения вероятности появления радуги. Создано с любовью, основано на физических 
-              законах оптики и угле Декарта (42°).
+              Катя, я очень тебя люблю. И сделал это приложение для того, чтобы ты видела чудеса.
             </Text>
             
             <View style={styles.infoFooter}>
@@ -1068,56 +1122,74 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginLeft: 12,
   },
-  conditionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  modernAnalysisContainer: {
+    marginBottom: 25,
   },
-  conditionItem: {
-    width: '48%',
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 15,
-    alignItems: 'center',
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  conditionIcon: {
-    fontSize: 28,
-    marginBottom: 10,
-  },
-  conditionLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-  conditionValue: {
+  modernAnalysisTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#374151',
+    color: 'white',
+    marginBottom: 20,
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
-  statusIndicator: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  modernCardsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  modernCard: {
+    width: '48%',
+    borderRadius: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modernCardGradient: {
+    padding: 20,
+    alignItems: 'center',
+    minHeight: 140,
+    justifyContent: 'space-between',
+  },
+  modernCardIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  modernCardValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    marginBottom: 5,
+  },
+  modernCardLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  modernCardStatus: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+  },
+  modernCardStatusText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    letterSpacing: 0.3,
   },
   solarCard: {
     borderRadius: 25,

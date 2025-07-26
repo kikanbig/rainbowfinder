@@ -164,8 +164,8 @@ export const RainbowCompass = ({
     : '☀️ Примерное направление (от солнца)';
   
   const compassStatusText = isCompassAvailable 
-    ? '🧭 Живой компас активен' 
-    : '📍 Статичный компас';
+    ? '🐝 Пчелка укажет путь' 
+    : '📍 Примерное направление';
   
       return (
       <View style={styles.compassContainer}>
@@ -217,38 +217,19 @@ export const RainbowCompass = ({
             );
           })}
           
-          {/* Основная стрелка направления радуги */}
+          {/* Большая милая пчелка указывает на радугу */}
           <View
             style={[
-              styles.rainbowArrow,
+              styles.mainBeeIndicator,
               {
                 transform: [{ rotate: `${arrowRotation}deg` }]
               }
             ]}
           >
-            <LinearGradient
-              colors={[getArrowColor(), `${getArrowColor()}AA`]}
-              style={styles.arrowGradient}
-            >
-              <Ionicons 
-                name="arrow-up" 
-                size={32} 
-                color="white"
-                style={styles.arrowIcon}
-              />
-            </LinearGradient>
-          </View>
-          
-          {/* Милая анимированная пчелка под стрелкой */}
-          <View
-            style={[
-              styles.beeIndicator,
-              {
-                transform: [{ rotate: `${arrowRotation}deg` }]
-              }
-            ]}
-          >
-            <Text style={styles.beeEmoji}>🐝</Text>
+            <View style={styles.beeContainer}>
+              <Text style={styles.bigBeeEmoji}>🐝</Text>
+              <View style={styles.beeGlow} />
+            </View>
           </View>
           
           {/* Индикатор солнца (тоже поворачиваем если компас активен) */}
@@ -315,20 +296,17 @@ export const RainbowCompass = ({
       
               {/* Инструкции */}
         <View style={styles.instructions}>
-          <Text style={styles.instructionTitle}>📋 Как пользоваться компасом:</Text>
+          <Text style={styles.instructionTitle}>🐝 Как найти радугу:</Text>
           {isCompassAvailable ? (
             <Text style={styles.instructionText}>
-              🧭 Живой компас активен!{'\n'}
-              1. Поворачивайте телефон, пока стрелка не укажет вверх{'\n'}
-              2. Когда стрелка указывает прямо, вы смотрите на радугу{'\n'}
-              3. Поднимите взгляд на небо под углом ~42°{'\n'}
-              4. Радуга появится в виде дуги перед вами
+              Поворачивайте телефон, пока пчелка не укажет вверх{'\n'}
+              Затем поднимите взгляд на небо под углом ~42°{'\n'}
+              Радуга появится прямо перед вами! ✨
             </Text>
           ) : (
             <Text style={styles.instructionText}>
-              📍 Статичный компас:{'\n'}
               1. Встаньте спиной к солнцу{'\n'}
-              2. Поверните телефон по направлению стрелки{'\n'}
+              2. Поверните телефон по направлению пчелки{'\n'}
               3. Смотрите на небо под углом ~42°{'\n'}
               4. Радуга появится в этом направлении
             </Text>
@@ -436,34 +414,45 @@ const styles = StyleSheet.create({
     transformOrigin: '1px 140px',
   },
   
-  rainbowArrow: {
+  mainBeeIndicator: {
     position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    top: -80,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 6,
-    transformOrigin: '25px 105px',
+    top: -90,
+    transformOrigin: '30px 120px',
   },
   
-  arrowGradient: {
+  beeContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   
-  arrowIcon: {
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+  bigBeeEmoji: {
+    fontSize: 48,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
+    zIndex: 2,
+  },
+  
+  beeGlow: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
+    elevation: 4,
+    zIndex: 1,
   },
   
   sunIndicator: {
@@ -604,18 +593,5 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   
-  beeIndicator: {
-    position: 'absolute',
-    top: COMPASS_SIZE * 0.25, // Позиция под стрелкой
-    left: COMPASS_SIZE / 2 - 16,
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  
-  beeEmoji: {
-    fontSize: 24,
-    textAlign: 'center',
-  },
+
 }); 
