@@ -416,12 +416,12 @@ const styles = StyleSheet.create({
   
   mainBeeIndicator: {
     position: 'absolute',
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    top: -90,
-    transformOrigin: '30px 120px',
+    top: 20, // Внутри компаса
+    transformOrigin: '25px 115px', // Центр компаса как точка поворота
   },
   
   beeContainer: {
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   
   bigBeeEmoji: {
-    fontSize: 48,
+    fontSize: 36,
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 2, height: 2 },
@@ -443,39 +443,49 @@ const styles = StyleSheet.create({
   
   beeGlow: {
     position: 'absolute',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
+    backgroundColor: 'rgba(255, 215, 0, 0.20)',
     shadowColor: '#FFD700',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 15,
-    elevation: 4,
+    shadowOpacity: 1.0,
+    shadowRadius: 12,
+    elevation: 5,
     zIndex: 1,
   },
   
   sunIndicator: {
     position: 'absolute',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(245, 158, 11, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    top: -100,
-    transformOrigin: '12px 112px',
+    top: 210, // Напротив пчелки, внутри компаса
+    transformOrigin: '15px -75px', // Центр компаса как точка поворота
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 3,
   },
   
   northIndicator: {
     position: 'absolute',
-    top: -110,
+    top: 10, // Внутри компаса, вверху
     backgroundColor: '#ef4444',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 2,
   },
   
   northText: {
