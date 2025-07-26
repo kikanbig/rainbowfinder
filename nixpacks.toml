@@ -1,0 +1,14 @@
+[build]
+providers = ["node"]
+
+[variables]
+NODE_VERSION = "18"
+
+[phases.build]
+dependsOn = ["setup"]
+cmds = [
+  "cd backend && npm install --only=production"
+]
+
+[start]
+cmd = "cd backend && node src/index.js"

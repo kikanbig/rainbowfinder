@@ -1,0 +1,11 @@
+{
+  "name": "kates-rainbow-monorepo",
+  "version": "1.0.0", 
+  "scripts": {
+    "start": "cd backend && node src/index.js",
+    "install": "cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
