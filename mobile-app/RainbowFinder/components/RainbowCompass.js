@@ -101,8 +101,12 @@ export const RainbowCompass = ({
   let isRainbowDirection = false;
   
   if (sunPosition && sunPosition.azimuth !== undefined) {
-    // Радуга ВСЕГДА появляется строго напротив солнца (физический закон!)
-    targetDirection = (sunPosition.azimuth + 180) % 360;
+    // 🐝 ПЧЕЛКА СТРОГО НАПРОТИВ СОЛНЦА! (физический закон радуги)
+    // Используем простое добавление 180° без модуля для избежания ошибок
+    targetDirection = sunPosition.azimuth + 180;
+    if (targetDirection >= 360) {
+      targetDirection -= 360;
+    }
     isRainbowDirection = true; // Теперь всегда реальное направление
   } else {
     // Резерв: если нет данных о солнце, используем расчетное направление
@@ -273,11 +277,19 @@ export const RainbowCompass = ({
       {/* Информация о направлении */}
               <View style={styles.directionInfo}>
           <View style={styles.directionRow}>
-            <Text style={styles.directionLabel}>Направление на радугу:</Text>
+            <Text style={styles.directionLabel}>🐝 Пчелка (радуга):</Text>
             <Text style={[styles.directionValue, { color: getArrowColor() }]}>
               {Math.round(targetDirection)}° ({directionName})
             </Text>
           </View>
+          {sunPosition && (
+            <View style={styles.directionRow}>
+              <Text style={styles.directionLabel}>☀️ Солнце:</Text>
+              <Text style={[styles.directionValue, { color: '#f59e0b' }]}>
+                {Math.round(sunPosition.azimuth)}° (разница: {Math.round(Math.abs(targetDirection - sunPosition.azimuth))}°)
+              </Text>
+            </View>
+          )}
           
           {isCompassAvailable && (
             <View style={styles.directionRow}>
