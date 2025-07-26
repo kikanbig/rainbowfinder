@@ -68,70 +68,57 @@ export default function App() {
    */
   const initializeApp = async () => {
     try {
+      Logger.info('APP', '=== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===');
       setLoading(true);
       
-      // Сначала проверяем текущие разрешения
-      let hasExistingPermissions = false;
-      try {
-        const { status } = await Location.getForegroundPermissionsAsync();
-        hasExistingPermissions = status === 'granted';
-      } catch (error) {
-        console.log('Не удалось проверить существующие разрешения:', error);
-      }
-      
-      // Если разрешений нет, запрашиваем
-      let permissions = hasExistingPermissions;
-      if (!hasExistingPermissions) {
-        permissions = await requestPermissions();
-      }
-      
+      // Шаг 1: Получаем разрешения
+      const permissions = await requestPermissions();
       setPermissionsGranted(permissions);
       
-      if (permissions) {
-        try {
-          // Получение местоположения
-          const currentLocation = await getCurrentLocation();
-          if (currentLocation) {
-            setLocation(currentLocation);
-            
-            // Получение названия места
-            const name = await WeatherService.getLocationName(
-              currentLocation.coords.latitude,
-              currentLocation.coords.longitude
-            );
-            setLocationName(name ? `${name.city}, ${name.country}` : 'Неизвестное место');
-            
-            // Обновление данных о радуге
-            await updateRainbowData(false);
-          } else {
-            // Если не удалось получить местоположение, показываем ошибку
-            Alert.alert(
-              'Ошибка геолокации', 
-              'Не удалось определить ваше местоположение. Проверьте, включена ли геолокация в настройках устройства.',
-              [
-                { text: 'Попробовать снова', onPress: initializeApp },
-                { text: 'Отмена', style: 'cancel' }
-              ]
-            );
-            setPermissionsGranted(false);
-          }
-        } catch (locationError) {
-          console.error('Ошибка получения местоположения:', locationError);
-          Alert.alert(
-            'Ошибка', 
-            'Не удалось получить данные о местоположении. Убедитесь, что геолокация включена.',
-            [{ text: 'Попробовать снова', onPress: initializeApp }]
-          );
-          setPermissionsGranted(false);
-        }
+      if (!permissions) {
+        Logger.error('APP', 'Разрешения не получены - останавливаем инициализацию');
+        return;
       }
+      
+      // Шаг 2: Получаем местоположение
+      const currentLocation = await getCurrentLocation();
+      if (!currentLocation) {
+        Logger.error('APP', 'Не удалось получить местоположение');
+        setPermissionsGranted(false);
+        return;
+      }
+      
+      Logger.success('APP', 'Местоположение получено успешно');
+      setLocation(currentLocation);
+      
+      // Шаг 3: Получаем название места (не критично)
+      try {
+        const name = await WeatherService.getLocationName(
+          currentLocation.coords.latitude,
+          currentLocation.coords.longitude
+        );
+        const locationText = name ? `${name.city}, ${name.country}` : 'Неизвестное место';
+        setLocationName(locationText);
+        Logger.info('APP', 'Название места получено', { name: locationText });
+      } catch (nameError) {
+        Logger.warn('APP', 'Не удалось получить название места', nameError);
+        setLocationName('Неизвестное место');
+      }
+      
+      // Шаг 4: Загружаем данные о радуге (не критично)
+      try {
+        await updateRainbowData(false);
+        Logger.success('APP', 'Данные о радуге загружены');
+      } catch (dataError) {
+        Logger.warn('APP', 'Не удалось загрузить данные о радуге', dataError);
+        // Продолжаем работу без данных
+      }
+      
+      Logger.success('APP', '=== ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА ===');
+      
     } catch (error) {
-      console.error('Ошибка инициализации:', error);
-      Alert.alert(
-        'Ошибка инициализации', 
-        'Произошла ошибка при запуске приложения. Попробуйте еще раз.',
-        [{ text: 'Повторить', onPress: initializeApp }]
-      );
+      Logger.error('APP', 'Критическая ошибка инициализации', error);
+      setPermissionsGranted(false);
     } finally {
       setLoading(false);
     }
@@ -142,73 +129,81 @@ export default function App() {
    */
   const requestPermissions = async () => {
     try {
-      let hasLocationPermission = false;
-      let hasNotificationPermission = false;
-
-      // 1. ОСНОВНОЕ разрешение на геолокацию (обязательно)
-      try {
-        const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
-        hasLocationPermission = locationStatus === 'granted';
+      Logger.info('APP', 'Начинаем запрос разрешений...');
+      
+      // Проверяем текущие разрешения сначала
+      const { status: currentLocationStatus } = await Location.getForegroundPermissionsAsync();
+      Logger.info('APP', 'Текущий статус геолокации', { status: currentLocationStatus });
+      
+      if (currentLocationStatus === 'granted') {
+        Logger.success('APP', 'Разрешение на геолокацию уже есть!');
         
-        if (!hasLocationPermission) {
-          // Проверяем, может быть разрешение уже было дано ранее
-          const { status: currentStatus } = await Location.getForegroundPermissionsAsync();
-          hasLocationPermission = currentStatus === 'granted';
+        // Пытаемся получить уведомления (не критично)
+        try {
+          await Notifications.requestPermissionsAsync();
+          Logger.info('APP', 'Уведомления запрошены');
+        } catch (e) {
+          Logger.warn('APP', 'Уведомления недоступны');
         }
-      } catch (error) {
-        console.log('Ошибка геолокации:', error);
-      }
-
-      // 2. Разрешение на уведомления (желательно, но не критично)
-      try {
-        const { status: notificationStatus } = await Notifications.requestPermissionsAsync();
-        hasNotificationPermission = notificationStatus === 'granted';
         
-        if (!hasNotificationPermission) {
-          // Проверяем текущий статус
-          const currentNotifStatus = await Notifications.getPermissionsAsync();
-          hasNotificationPermission = currentNotifStatus.status === 'granted';
+        return true;
+      }
+      
+      // Если разрешения нет - запрашиваем
+      Logger.info('APP', 'Запрашиваем разрешение на геолокацию...');
+      const { status: newLocationStatus } = await Location.requestForegroundPermissionsAsync();
+      Logger.info('APP', 'Новый статус геолокации', { status: newLocationStatus });
+      
+      if (newLocationStatus === 'granted') {
+        Logger.success('APP', 'Разрешение получено!');
+        
+        // Пытаемся получить уведомления
+        try {
+          await Notifications.requestPermissionsAsync();
+        } catch (e) {
+          // Игнорируем ошибки уведомлений
         }
-      } catch (error) {
-        console.log('Ошибка уведомлений:', error);
-        // Уведомления не критичны, продолжаем работу
-      }
-
-      // 3. Фоновая геолокация (опционально, не блокируем приложение)
-      try {
-        await Location.requestBackgroundPermissionsAsync();
-      } catch (error) {
-        console.log('Фоновая геолокация недоступна:', error);
-        // Не критично, продолжаем
-      }
-
-      // ГЛАВНОЕ: если есть геолокация - разрешаем работу
-      if (hasLocationPermission) {
+        
         return true;
       } else {
-        return false; // Без геолокации приложение не может работать
+        Logger.error('APP', 'Разрешение НЕ получено', { status: newLocationStatus });
+        return false;
       }
       
     } catch (error) {
-      console.error('Ошибка запроса разрешений:', error);
+      Logger.error('APP', 'Ошибка запроса разрешений', error);
       return false;
     }
   };
 
   /**
-   * Получение текущего местоположения
+   * Получение текущего местоположения (БЕЗОПАСНАЯ ВЕРСИЯ)
    */
   const getCurrentLocation = async () => {
     try {
+      Logger.info('APP', 'Получаем местоположение...');
+      
+      // Проверяем разрешения еще раз
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Logger.error('APP', 'Нет разрешения на геолокацию');
+        throw new Error('Нет разрешения на геолокацию');
+      }
+      
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-        timeout: 10000,
+        accuracy: Location.Accuracy.Balanced, // Понижаем точность для стабильности
+        timeout: 15000, // Увеличиваем timeout
+        mayShowUserSettingsDialog: false, // Не показываем диалоги
+      });
+      
+      Logger.success('APP', 'Местоположение получено', {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
       });
       
       return location;
     } catch (error) {
-      console.error('Ошибка получения местоположения:', error);
-      Alert.alert('Ошибка', 'Не удалось определить местоположение');
+      Logger.error('APP', 'Ошибка получения местоположения', error);
       return null;
     }
   };
@@ -226,7 +221,7 @@ export default function App() {
       if (showLoading) setLoading(true);
       
       const { latitude, longitude } = location.coords;
-      console.log('Обновление данных для координат:', latitude, longitude);
+      Logger.info('APP', 'Обновление данных для координат', { latitude, longitude });
       
       // 1. Получение погодных данных (с детальной обработкой ошибок)
       let currentWeather;
