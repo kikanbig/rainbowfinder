@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
   StyleSheet,
@@ -46,6 +46,18 @@ export default function App() {
   const [locationName, setLocationName] = useState('');
   const [permissionsGranted, setPermissionsGranted] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [initializationError, setInitializationError] = useState(null);
+
+  // Ref для отслеживания состояния компонента
+  const isMountedRef = useRef(true);
+  const updateInProgressRef = useRef(false);
+
+  // Cleanup при размонтировании
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Инициализация приложения
   useEffect(() => {
@@ -55,13 +67,22 @@ export default function App() {
   // Автообновление каждые 5 минут
   useEffect(() => {
     const interval = setInterval(() => {
-      if (location && permissionsGranted) {
+      if (isMountedRef.current && location && permissionsGranted && !updateInProgressRef.current) {
         updateRainbowData(false);
       }
     }, 5 * 60 * 1000); // 5 минут
 
     return () => clearInterval(interval);
   }, [location, permissionsGranted]);
+
+  /**
+   * Безопасное обновление состояния (только если компонент смонтирован)
+   */
+  const safeSetState = useCallback((setter, value) => {
+    if (isMountedRef.current) {
+      setter(value);
+    }
+  }, []);
 
   /**
    * Инициализация приложения (УЛУЧШЕННАЯ)
@@ -212,13 +233,20 @@ export default function App() {
    * Обновление данных о радуге (ИСПРАВЛЕННАЯ ВЕРСИЯ)
    */
   const updateRainbowData = async (showLoading = true) => {
+    if (!isMountedRef.current || updateInProgressRef.current) {
+      Logger.info('APP', 'Обновление пропущено: компонент размонтирован или обновление уже идет');
+      return;
+    }
+
     if (!location) {
       Alert.alert('Ошибка', 'Местоположение не определено. Проверьте разрешения на геолокацию.');
       return;
     }
 
+    updateInProgressRef.current = true;
+
     try {
-      if (showLoading) setLoading(true);
+      if (showLoading && isMountedRef.current) safeSetState(setLoading, true);
       
       const { latitude, longitude } = location.coords;
       Logger.info('APP', 'Обновление данных для координат', { latitude, longitude });
@@ -226,23 +254,30 @@ export default function App() {
       // 1. Получение погодных данных (с детальной обработкой ошибок)
       let currentWeather;
       try {
-              Logger.info('APP', 'Начинаем получение погодных данных...', { latitude, longitude });
-      currentWeather = await WeatherService.getCurrentWeather(latitude, longitude);
-      setWeather(currentWeather);
-      Logger.success('APP', 'Погодные данные получены успешно');
-              } catch (weatherError) {
-          Logger.error('APP', 'Ошибка получения погоды', weatherError);
-          Logger.error('APP', 'Детали ошибки', { message: weatherError.message, stack: weatherError.stack });
-        Alert.alert(
-          'Ошибка погодных данных', 
-          `Не удалось получить данные о погоде:\n${weatherError.message}\n\nПроверьте интернет-соединение.`,
-          [
-            { text: 'Попробовать снова', onPress: () => updateRainbowData(showLoading) },
-            { text: 'Отмена', style: 'cancel' }
-          ]
-        );
+        Logger.info('APP', 'Начинаем получение погодных данных...', { latitude, longitude });
+        currentWeather = await WeatherService.getCurrentWeather(latitude, longitude);
+        
+        if (!isMountedRef.current) return;
+        
+        safeSetState(setWeather, currentWeather);
+        Logger.success('APP', 'Погодные данные получены успешно');
+      } catch (weatherError) {
+        Logger.error('APP', 'Ошибка получения погоды', weatherError);
+        
+        if (isMountedRef.current) {
+          Alert.alert(
+            'Ошибка погодных данных', 
+            `Не удалось получить данные о погоде:\n${weatherError.message}\n\nПроверьте интернет-соединение.`,
+            [
+              { text: 'Попробовать снова', onPress: () => updateRainbowData(showLoading) },
+              { text: 'Отмена', style: 'cancel' }
+            ]
+          );
+        }
         return;
       }
+      
+      if (!isMountedRef.current) return;
       
       // 2. Астрономические расчеты (с обработкой ошибок)
       let sunPosition, solarEvents;
@@ -250,15 +285,23 @@ export default function App() {
         const currentTime = new Date();
         sunPosition = SunCalculator.calculateSunPosition(latitude, longitude, currentTime);
         solarEvents = SunCalculator.calculateSolarEvents(latitude, longitude, currentTime);
-        setSunData({ position: sunPosition, events: solarEvents });
+        
+        if (!isMountedRef.current) return;
+        
+        safeSetState(setSunData, { position: sunPosition, events: solarEvents });
         Logger.success('APP', 'Астрономические расчеты выполнены успешно');
-              } catch (sunError) {
-          Logger.error('APP', 'Ошибка астрономических расчетов', sunError);
-        Alert.alert('Ошибка', 'Ошибка в астрономических расчетах');
+      } catch (sunError) {
+        Logger.error('APP', 'Ошибка астрономических расчетов', sunError);
+        
+        if (isMountedRef.current) {
+          Alert.alert('Ошибка', 'Ошибка в астрономических расчетах');
+        }
         return;
       }
       
-            // 3. Расчет вероятности радуги (с обработкой ошибок)
+      if (!isMountedRef.current) return;
+      
+      // 3. Расчет вероятности радуги (с обработкой ошибок)
       let rainbowResult;
       try {
         const rainbowConditions = {
@@ -269,24 +312,32 @@ export default function App() {
         };
         
         rainbowResult = RainbowCalculator.calculateRainbowProbability(rainbowConditions);
-        setRainbowData(rainbowResult);
+        
+        if (!isMountedRef.current) return;
+        
+        safeSetState(setRainbowData, rainbowResult);
         Logger.success('APP', 'Расчет радуги выполнен успешно', { probability: rainbowResult.probability });
-              } catch (rainbowError) {
-          Logger.error('APP', 'Ошибка расчета радуги', rainbowError);
-        Alert.alert('Ошибка', 'Ошибка в расчете вероятности радуги');
+      } catch (rainbowError) {
+        Logger.error('APP', 'Ошибка расчета радуги', rainbowError);
+        
+        if (isMountedRef.current) {
+          Alert.alert('Ошибка', 'Ошибка в расчете вероятности радуги');
+        }
         return;
       }
       
+      if (!isMountedRef.current) return;
+      
       // 4. Обновление времени последнего обновления
-      setLastUpdate(new Date());
+      safeSetState(setLastUpdate, new Date());
       
       // 5. Проверка условий для уведомления (не критично)
       try {
         if (rainbowResult && rainbowResult.probability !== undefined) {
           await checkNotificationConditions(rainbowResult);
         }
-              } catch (notificationError) {
-          Logger.warn('APP', 'Ошибка уведомлений (не критично)', notificationError);
+      } catch (notificationError) {
+        Logger.warn('APP', 'Ошибка уведомлений (не критично)', notificationError);
         // Не показываем ошибку пользователю, так как это не критично
       }
       
@@ -294,16 +345,22 @@ export default function App() {
       
     } catch (error) {
       Logger.error('APP', 'Общая ошибка обновления данных', error);
-      Alert.alert(
-        'Ошибка обновления', 
-        `Произошла ошибка при обновлении данных: ${error.message || 'Неизвестная ошибка'}`,
-        [
-          { text: 'Попробовать снова', onPress: () => updateRainbowData(showLoading) },
-          { text: 'Отмена', style: 'cancel' }
-        ]
-      );
+      
+      if (isMountedRef.current) {
+        Alert.alert(
+          'Ошибка обновления', 
+          `Произошла ошибка при обновлении данных: ${error.message || 'Неизвестная ошибка'}`,
+          [
+            { text: 'Попробовать снова', onPress: () => updateRainbowData(showLoading) },
+            { text: 'Отмена', style: 'cancel' }
+          ]
+        );
+      }
     } finally {
-      if (showLoading) setLoading(false);
+      updateInProgressRef.current = false;
+      if (showLoading && isMountedRef.current) {
+        safeSetState(setLoading, false);
+      }
     }
   };
 
@@ -347,9 +404,11 @@ export default function App() {
    * Обработчик обновления
    */
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
+    if (!isMountedRef.current || updateInProgressRef.current) return;
+    
+    safeSetState(setRefreshing, true);
     await updateRainbowData(false);
-    setRefreshing(false);
+    safeSetState(setRefreshing, false);
   }, [location]);
 
   /**

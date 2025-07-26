@@ -15,6 +15,15 @@ export class WeatherService {
    */
   static async getCurrentWeather(latitude, longitude) {
     try {
+      // Проверка входных параметров
+      if (!latitude || !longitude || typeof latitude !== 'number' || typeof longitude !== 'number') {
+        throw new Error('Некорректные координаты для запроса погоды');
+      }
+
+      if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        throw new Error('Координаты за пределами допустимых значений');
+      }
+
       Logger.info('WEATHER', '=== НАЧИНАЕМ ПОЛУЧЕНИЕ ПОГОДНЫХ ДАННЫХ ===');
       Logger.debug('WEATHER', 'Входные параметры', { latitude, longitude });
       Logger.debug('WEATHER', 'API конфигурация', { 
@@ -35,16 +44,37 @@ export class WeatherService {
       });
       
       if (!currentResponse.ok) {
-        const errorText = await currentResponse.text();
+        let errorText = 'Неизвестная ошибка API';
+        try {
+          errorText = await currentResponse.text();
+        } catch (parseError) {
+          Logger.warn('WEATHER', 'Не удалось прочитать текст ошибки');
+        }
+        
         Logger.error('WEATHER', 'Ошибка API', { 
           status: currentResponse.status, 
           statusText: currentResponse.statusText,
           error: errorText 
         });
-        throw new Error(`HTTP Error: ${currentResponse.status} ${currentResponse.statusText} - ${errorText}`);
+        
+        if (currentResponse.status === 401) {
+          throw new Error('Ошибка авторизации API. Проверьте ключ API.');
+        } else if (currentResponse.status === 429) {
+          throw new Error('Превышен лимит запросов к API погоды. Попробуйте позже.');
+        } else if (currentResponse.status >= 500) {
+          throw new Error('Ошибка сервера API погоды. Попробуйте позже.');
+        } else {
+          throw new Error(`Ошибка API: ${currentResponse.status} - ${errorText}`);
+        }
       }
       
       const currentData = await currentResponse.json();
+      
+      // Проверка структуры ответа
+      if (!currentData || !currentData.main || !currentData.weather || !Array.isArray(currentData.weather)) {
+        Logger.error('WEATHER', 'Некорректная структура ответа API', currentData);
+        throw new Error('Получены некорректные данные от API погоды');
+      }
       Logger.success('WEATHER', 'Данные текущей погоды получены', { 
         city: currentData.name, 
         weather: currentData.weather[0].description,
@@ -275,26 +305,40 @@ export class WeatherService {
    * Преобразование данных погоды в стандартный формат
    */
   static transformWeatherData(data) {
+    if (!data) {
+      throw new Error('Отсутствуют данные для преобразования');
+    }
+
+    // Защита от некорректных данных
+    const safeNumber = (value, defaultValue = 0) => {
+      const num = Number(value);
+      return (!isNaN(num) && isFinite(num)) ? num : defaultValue;
+    };
+
+    const safeString = (value, defaultValue = '') => {
+      return (typeof value === 'string') ? value : defaultValue;
+    };
+
     return {
       // Основные параметры
-      temperature: data.temp || data.main?.temp,
-      feelsLike: data.feels_like || data.main?.feels_like,
-      humidity: data.humidity || data.main?.humidity,
-      pressure: data.pressure || data.main?.pressure,
+      temperature: safeNumber(data.temp || data.main?.temp, 0),
+      feelsLike: safeNumber(data.feels_like || data.main?.feels_like, 0),
+      humidity: safeNumber(data.humidity || data.main?.humidity, 50),
+      pressure: safeNumber(data.pressure || data.main?.pressure, 1013),
       
       // Видимость
-      visibility: data.visibility || 10000, // Метры
+      visibility: safeNumber(data.visibility, 10000), // Метры
       
       // Облачность
       clouds: {
-        all: data.clouds?.all || 0
+        all: safeNumber(data.clouds?.all, 0)
       },
       
       // Ветер
       wind: {
-        speed: data.wind?.speed || 0, // м/с
-        direction: data.wind?.deg || 0, // градусы
-        gust: data.wind?.gust || 0
+        speed: safeNumber(data.wind?.speed, 0), // м/с
+        direction: safeNumber(data.wind?.deg, 0), // градусы
+        gust: safeNumber(data.wind?.gust, 0)
       },
       
       // Осадки
@@ -302,11 +346,21 @@ export class WeatherService {
       snow: data.snow || null,
       
       // Описание
-      weather: data.weather || [{
+      weather: Array.isArray(data.weather) && data.weather.length > 0 ? data.weather : [{
         main: 'Clear',
         description: 'ясно',
         icon: '01d'
       }],
+      
+      // Основная информация о погоде
+      main: {
+        temp: safeNumber(data.temp || data.main?.temp, 0),
+        feels_like: safeNumber(data.feels_like || data.main?.feels_like, 0),
+        humidity: safeNumber(data.humidity || data.main?.humidity, 50),
+        pressure: safeNumber(data.pressure || data.main?.pressure, 1013),
+        temp_min: safeNumber(data.main?.temp_min, 0),
+        temp_max: safeNumber(data.main?.temp_max, 0)
+      },
       
       // UV индекс
       uvi: data.uvi || null,
@@ -316,7 +370,10 @@ export class WeatherService {
       
       // Дополнительные данные
       dewPoint: data.dew_point,
-      timezone: data.timezone
+      timezone: data.timezone,
+      
+      // Название места
+      name: safeString(data.name, 'Неизвестное место')
     };
   }
 

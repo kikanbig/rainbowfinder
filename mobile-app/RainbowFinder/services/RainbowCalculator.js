@@ -28,6 +28,11 @@ export class RainbowCalculator {
     Logger.info('RAINBOW', '=== НАЧИНАЕМ РАСЧЕТ ВЕРОЯТНОСТИ РАДУГИ ===');
     
     try {
+      if (!conditions || typeof conditions !== 'object') {
+        Logger.error('RAINBOW', 'Отсутствуют или некорректные условия для расчета');
+        throw new Error('Отсутствуют условия для расчета');
+      }
+
       const { latitude, longitude, weather, dateTime = new Date() } = conditions;
       
       Logger.debug('RAINBOW', 'Входные данные', { latitude, longitude, dateTime });
@@ -38,10 +43,35 @@ export class RainbowCalculator {
         Logger.error('RAINBOW', 'Недостаточно данных для расчета');
         throw new Error('Недостаточно данных для расчета');
       }
+
+      // Проверка корректности координат
+      if (typeof latitude !== 'number' || typeof longitude !== 'number' || 
+          latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        Logger.error('RAINBOW', 'Некорректные координаты', { latitude, longitude });
+        throw new Error('Некорректные координаты');
+      }
+
+      // Проверка структуры погодных данных
+      if (!weather.main || !weather.weather || !Array.isArray(weather.weather) || weather.weather.length === 0) {
+        Logger.error('RAINBOW', 'Некорректная структура погодных данных', weather);
+        throw new Error('Некорректные погодные данные');
+      }
       
       // 1. Астрономические расчеты
-      const sunPosition = SunCalculator.calculateSunPosition(latitude, longitude, dateTime);
-      const solarEvents = SunCalculator.calculateSolarEvents(latitude, longitude, dateTime);
+      let sunPosition, solarEvents;
+      try {
+        sunPosition = SunCalculator.calculateSunPosition(latitude, longitude, dateTime);
+        solarEvents = SunCalculator.calculateSolarEvents(latitude, longitude, dateTime);
+        
+        // Проверка корректности результатов
+        if (!sunPosition || typeof sunPosition.altitude !== 'number' || typeof sunPosition.azimuth !== 'number') {
+          Logger.error('RAINBOW', 'Некорректные результаты расчета солнца', sunPosition);
+          throw new Error('Ошибка в расчете положения солнца');
+        }
+      } catch (sunError) {
+        Logger.error('RAINBOW', 'Ошибка астрономических расчетов', sunError);
+        throw new Error('Ошибка в астрономических расчетах');
+      }
       
       // КРИТИЧЕСКАЯ ПРОВЕРКА: Если солнце под горизонтом, радуга НЕВОЗМОЖНА
       if (sunPosition.altitude <= 0) {
@@ -56,37 +86,69 @@ export class RainbowCalculator {
         };
       }
       
-      // 2. Основные факторы
-      const sunAngleFactor = this.calculateSunAngleFactor(sunPosition.altitude);
-      const timeFactors = this.calculateTimeFactors(dateTime, solarEvents);
-      const weatherFactors = this.calculateWeatherFactors(weather);
-      const atmosphericFactors = this.calculateAtmosphericFactors(weather, latitude);
-      const geometricFactors = this.calculateGeometricFactors(sunPosition, weather);
+      // 2. Основные факторы с защитой от ошибок
+      let sunAngleFactor, timeFactors, weatherFactors, atmosphericFactors, geometricFactors;
+      
+      try {
+        sunAngleFactor = this.calculateSunAngleFactor(sunPosition.altitude);
+        timeFactors = this.calculateTimeFactors(dateTime, solarEvents);
+        weatherFactors = this.calculateWeatherFactors(weather);
+        atmosphericFactors = this.calculateAtmosphericFactors(weather, latitude);
+        geometricFactors = this.calculateGeometricFactors(sunPosition, weather);
+        
+        // Проверка на NaN и бесконечность
+        if (!this.validateFactors({ sunAngleFactor, timeFactors, weatherFactors, atmosphericFactors, geometricFactors })) {
+          throw new Error('Некорректные результаты расчета факторов');
+        }
+      } catch (factorError) {
+        Logger.error('RAINBOW', 'Ошибка расчета факторов', factorError);
+        throw new Error('Ошибка в расчете факторов радуги');
+      }
       
       // 3. Составной расчет вероятности
-      const baseProbability = this.calculateBaseProbability(
-        sunAngleFactor, 
-        weatherFactors, 
-        atmosphericFactors
-      );
+      let baseProbability, timeModifier, environmentModifier, finalProbability;
       
-      const timeModifier = timeFactors.timeOfDayFactor * timeFactors.seasonalFactor;
-      const environmentModifier = geometricFactors.lightScatteringFactor * 
-                                 geometricFactors.dropletDistributionFactor;
-      
-      // 4. Финальный расчет с учетом всех факторов
-      let finalProbability = baseProbability * timeModifier * environmentModifier;
-      
-      // 5. Бонусы и штрафы
-      finalProbability = this.applyBonusesAndPenalties(
-        finalProbability, 
-        weather, 
-        sunPosition, 
-        timeFactors
-      );
-      
-      // 6. Нормализация (0-100%)
-      finalProbability = Math.max(0, Math.min(100, finalProbability));
+      try {
+        baseProbability = this.calculateBaseProbability(
+          sunAngleFactor, 
+          weatherFactors, 
+          atmosphericFactors
+        );
+        
+        if (!this.isValidNumber(baseProbability)) {
+          throw new Error('Некорректная базовая вероятность');
+        }
+        
+        timeModifier = timeFactors.timeOfDayFactor * timeFactors.seasonalFactor;
+        environmentModifier = geometricFactors.lightScatteringFactor * 
+                               geometricFactors.dropletDistributionFactor;
+        
+        if (!this.isValidNumber(timeModifier) || !this.isValidNumber(environmentModifier)) {
+          throw new Error('Некорректные модификаторы');
+        }
+        
+        // 4. Финальный расчет с учетом всех факторов
+        finalProbability = baseProbability * timeModifier * environmentModifier;
+        
+        // 5. Бонусы и штрафы
+        finalProbability = this.applyBonusesAndPenalties(
+          finalProbability, 
+          weather, 
+          sunPosition, 
+          timeFactors
+        );
+        
+        // 6. Нормализация (0-100%)
+        finalProbability = Math.max(0, Math.min(100, finalProbability || 0));
+        
+        if (!this.isValidNumber(finalProbability)) {
+          Logger.error('RAINBOW', 'Некорректная финальная вероятность', finalProbability);
+          finalProbability = 0;
+        }
+      } catch (probError) {
+        Logger.error('RAINBOW', 'Ошибка расчета вероятности', probError);
+        finalProbability = 0;
+      }
       
       // 7. Направление радуги
       const rainbowDirection = this.calculateRainbowDirection(sunPosition);
@@ -571,8 +633,88 @@ export class RainbowCalculator {
    * Оценка UV индекса (приблизительная)
    */
   static estimateUVIndex(weather, latitude) {
-    const cloudiness = weather.clouds.all;
+    if (!weather || !weather.clouds || typeof latitude !== 'number') {
+      return 0;
+    }
+    
+    const cloudiness = Math.max(0, Math.min(100, weather.clouds.all || 0));
     const baseUV = Math.max(0, 10 - Math.abs(latitude) / 9);
     return baseUV * (1 - cloudiness / 100);
+  }
+
+  /**
+   * Проверка корректности числа
+   */
+  static isValidNumber(value) {
+    return typeof value === 'number' && !isNaN(value) && isFinite(value);
+  }
+
+  /**
+   * Проверка всех факторов на корректность
+   */
+  static validateFactors(factors) {
+    try {
+      // Проверяем базовые числовые факторы
+      if (!this.isValidNumber(factors.sunAngleFactor)) {
+        Logger.error('RAINBOW', 'Некорректный sunAngleFactor', factors.sunAngleFactor);
+        return false;
+      }
+
+      // Проверяем временные факторы
+      if (!factors.timeFactors || 
+          !this.isValidNumber(factors.timeFactors.timeOfDayFactor) ||
+          !this.isValidNumber(factors.timeFactors.seasonalFactor)) {
+        Logger.error('RAINBOW', 'Некорректные timeFactors', factors.timeFactors);
+        return false;
+      }
+
+      // Проверяем погодные факторы
+      if (!factors.weatherFactors || typeof factors.weatherFactors !== 'object') {
+        Logger.error('RAINBOW', 'Некорректные weatherFactors', factors.weatherFactors);
+        return false;
+      }
+
+      // Проверяем атмосферные факторы
+      if (!factors.atmosphericFactors || 
+          !this.isValidNumber(factors.atmosphericFactors.lightScatteringFactor)) {
+        Logger.error('RAINBOW', 'Некорректные atmosphericFactors', factors.atmosphericFactors);
+        return false;
+      }
+
+      // Проверяем геометрические факторы
+      if (!factors.geometricFactors || 
+          !this.isValidNumber(factors.geometricFactors.lightScatteringFactor) ||
+          !this.isValidNumber(factors.geometricFactors.dropletDistributionFactor)) {
+        Logger.error('RAINBOW', 'Некорректные geometricFactors', factors.geometricFactors);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      Logger.error('RAINBOW', 'Ошибка валидации факторов', error);
+      return false;
+    }
+  }
+
+  /**
+   * Безопасное деление
+   */
+  static safeDivide(dividend, divisor, defaultValue = 0) {
+    if (!this.isValidNumber(dividend) || !this.isValidNumber(divisor) || divisor === 0) {
+      return defaultValue;
+    }
+    const result = dividend / divisor;
+    return this.isValidNumber(result) ? result : defaultValue;
+  }
+
+  /**
+   * Безопасное умножение
+   */
+  static safeMultiply(a, b, defaultValue = 0) {
+    if (!this.isValidNumber(a) || !this.isValidNumber(b)) {
+      return defaultValue;
+    }
+    const result = a * b;
+    return this.isValidNumber(result) ? result : defaultValue;
   }
 } 
