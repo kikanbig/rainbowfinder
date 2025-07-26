@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { Magnetometer } from 'expo-sensors';
 
 const { width } = Dimensions.get('window');
 const COMPASS_SIZE = Math.min(width * 0.7, 280);
@@ -13,12 +14,74 @@ export const RainbowCompass = ({
   userLocation 
 }) => {
   
-  // console.log('🧭 КОМПАС - Входные данные:', {
-  //   rainbowDirection,
-  //   probability,
-  //   sunPosition: sunPosition ? 'есть' : 'нет',
-  //   userLocation: userLocation ? 'есть' : 'нет'
-  // });
+  const [magnetometerData, setMagnetometerData] = useState({ x: 0, y: 0, z: 0 });
+  const [deviceHeading, setDeviceHeading] = useState(0); // Текущее направление устройства
+  const [isCompassAvailable, setIsCompassAvailable] = useState(false);
+  const subscription = useRef(null);
+  
+  // Инициализация датчиков
+  useEffect(() => {
+    initializeCompass();
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+  
+  // Инициализация компаса
+  const initializeCompass = async () => {
+    try {
+      // Проверяем доступность магнитометра
+      const isAvailable = await Magnetometer.isAvailableAsync();
+      
+      if (isAvailable) {
+        setIsCompassAvailable(true);
+        
+        // Устанавливаем частоту обновления
+        Magnetometer.setUpdateInterval(100); // 10 раз в секунду
+        
+        // Подписываемся на данные магнитометра
+        subscription.current = Magnetometer.addListener(handleMagnetometerUpdate);
+        
+        console.log('🧭 Компас успешно инициализирован');
+      } else {
+        console.log('⚠️ Магнитометр недоступен на этом устройстве');
+        setIsCompassAvailable(false);
+      }
+    } catch (error) {
+      console.error('❌ Ошибка инициализации компаса:', error);
+      setIsCompassAvailable(false);
+    }
+  };
+  
+  // Обработка данных магнитометра
+  const handleMagnetometerUpdate = (data) => {
+    setMagnetometerData(data);
+    
+    // Вычисляем направление устройства (азимут)
+    const heading = calculateHeading(data);
+    setDeviceHeading(heading);
+  };
+  
+  // Вычисление направления устройства в градусах
+  const calculateHeading = (data) => {
+    if (Platform.OS === 'ios') {
+      // На iOS используем стандартную формулу
+      let heading = Math.atan2(data.y, data.x) * (180 / Math.PI);
+      return heading >= 0 ? heading : heading + 360;
+    } else {
+      // На Android может потребоваться другая формула
+      let heading = Math.atan2(-data.y, data.x) * (180 / Math.PI);
+      return heading >= 0 ? heading : heading + 360;
+    }
+  };
+  
+  // Отписка от датчиков
+  const unsubscribe = () => {
+    if (subscription.current) {
+      subscription.current.remove();
+      subscription.current = null;
+    }
+  };
   
   // ИСПРАВЛЕНО: Показываем компас даже при низкой вероятности (для тестирования)
   if (!rainbowDirection && !sunPosition) {
@@ -32,22 +95,31 @@ export const RainbowCompass = ({
     );
   }
   
-  // Если нет направления радуги, но есть солнце - показываем направление от солнца  
-  let direction = 0;
+  // Определяем направление на радугу
+  let targetDirection = 0;
   let isRainbowDirection = false;
   
   if (rainbowDirection && rainbowDirection.center !== undefined) {
-    direction = rainbowDirection.center;
+    targetDirection = rainbowDirection.center;
     isRainbowDirection = true;
-    // console.log('🌈 Используем направление радуги:', direction);
   } else if (sunPosition && sunPosition.azimuth !== undefined) {
     // Радуга появляется противоположно солнцу (±180°)
-    direction = (sunPosition.azimuth + 180) % 360;
+    targetDirection = (sunPosition.azimuth + 180) % 360;
     isRainbowDirection = false;
-    // console.log('☀️ Рассчитываем от солнца:', sunPosition.azimuth, '→', direction);
-     }
+  }
   
-    const arrowRotation = direction - 90; // Корректируем для правильного отображения
+  // Вычисляем угол поворота стрелки относительно устройства
+  let arrowRotation;
+  if (isCompassAvailable) {
+    // Настоящий компас: стрелка указывает на радугу независимо от поворота телефона
+    arrowRotation = targetDirection - deviceHeading - 90; // -90 для корректировки начального положения
+  } else {
+    // Статичный компас: стрелка просто указывает направление
+    arrowRotation = targetDirection - 90;
+  }
+  
+  // Нормализуем угол
+  arrowRotation = ((arrowRotation % 360) + 360) % 360;
 
   // Функция для получения названия направления
   const getDirectionName = (degrees) => {
@@ -77,7 +149,7 @@ export const RainbowCompass = ({
     return 'С';
   };
 
-  const directionName = getDirectionName(direction);
+  const directionName = getDirectionName(targetDirection);
 
   // Цвет стрелки зависит от вероятности
   const getArrowColor = () => {
@@ -91,14 +163,20 @@ export const RainbowCompass = ({
     ? '🌈 Направление на радугу' 
     : '☀️ Примерное направление (от солнца)';
   
-  return (
-    <View style={styles.compassContainer}>
-      <Text style={styles.compassTitle}>{compassTitle}</Text>
-      {!isRainbowDirection && (
-        <Text style={styles.compassSubtitle}>
-          ⚠️ Тестовый режим: направление рассчитано от солнца
-        </Text>
-      )}
+  const compassStatusText = isCompassAvailable 
+    ? '🧭 Живой компас активен' 
+    : '📍 Статичный компас';
+  
+      return (
+      <View style={styles.compassContainer}>
+        <Text style={styles.compassTitle}>{compassTitle}</Text>
+        <Text style={styles.compassStatus}>{compassStatusText}</Text>
+        
+        {!isRainbowDirection && (
+          <Text style={styles.compassSubtitle}>
+            ⚠️ Направление рассчитано от солнца
+          </Text>
+        )}
       
       {/* Основной компас */}
       <View style={[styles.compass, { width: COMPASS_SIZE, height: COMPASS_SIZE }]}>
@@ -161,36 +239,57 @@ export const RainbowCompass = ({
             </LinearGradient>
           </View>
           
-          {/* Индикатор солнца */}
+          {/* Индикатор солнца (тоже поворачиваем если компас активен) */}
           <View
             style={[
               styles.sunIndicator,
               {
-                transform: [{ rotate: `${(sunPosition?.azimuth || 0) - 90}deg` }]
+                transform: [{ 
+                  rotate: `${isCompassAvailable 
+                    ? (sunPosition?.azimuth || 0) - deviceHeading - 90
+                    : (sunPosition?.azimuth || 0) - 90
+                  }deg` 
+                }]
               }
             ]}
           >
             <Ionicons name="sunny" size={16} color="#f59e0b" />
           </View>
           
+          {/* Индикатор севера (статичен) */}
+          {isCompassAvailable && (
+            <View style={styles.northIndicator}>
+              <Text style={styles.northText}>N</Text>
+            </View>
+          )}
+          
         </LinearGradient>
       </View>
       
       {/* Информация о направлении */}
-      <View style={styles.directionInfo}>
-        <View style={styles.directionRow}>
-          <Text style={styles.directionLabel}>Направление:</Text>
-          <Text style={[styles.directionValue, { color: getArrowColor() }]}>
-            {Math.round(direction)}° ({directionName})
-          </Text>
-        </View>
-        
-        <View style={styles.directionRow}>
-          <Text style={styles.directionLabel}>Точность:</Text>
-          <Text style={styles.directionValue}>
-            ±{rainbowDirection.range ? '1' : '2'}°
-          </Text>
-        </View>
+              <View style={styles.directionInfo}>
+          <View style={styles.directionRow}>
+            <Text style={styles.directionLabel}>Направление на радугу:</Text>
+            <Text style={[styles.directionValue, { color: getArrowColor() }]}>
+              {Math.round(targetDirection)}° ({directionName})
+            </Text>
+          </View>
+          
+          {isCompassAvailable && (
+            <View style={styles.directionRow}>
+              <Text style={styles.directionLabel}>Ваш азимут:</Text>
+              <Text style={styles.directionValue}>
+                {Math.round(deviceHeading)}° ({getDirectionName(deviceHeading)})
+              </Text>
+            </View>
+          )}
+          
+          <View style={styles.directionRow}>
+            <Text style={styles.directionLabel}>Точность:</Text>
+            <Text style={styles.directionValue}>
+              ±{isCompassAvailable ? '2' : '5'}°
+            </Text>
+          </View>
         
         {userLocation && (
           <View style={styles.coordinatesContainer}>
@@ -202,16 +301,36 @@ export const RainbowCompass = ({
         )}
       </View>
       
-      {/* Инструкции */}
-      <View style={styles.instructions}>
-        <Text style={styles.instructionTitle}>📋 Как искать радугу:</Text>
-        <Text style={styles.instructionText}>
-          1. Встаньте спиной к солнцу{'\n'}
-          2. Поверните телефон по направлению стрелки{'\n'}
-          3. Смотрите на небо под углом ~42° от горизонта{'\n'}
-          4. Радуга появится в виде дуги в этом направлении
-        </Text>
-      </View>
+              {/* Инструкции */}
+        <View style={styles.instructions}>
+          <Text style={styles.instructionTitle}>📋 Как пользоваться компасом:</Text>
+          {isCompassAvailable ? (
+            <Text style={styles.instructionText}>
+              🧭 Живой компас активен!{'\n'}
+              1. Поворачивайте телефон, пока стрелка не укажет вверх{'\n'}
+              2. Когда стрелка указывает прямо, вы смотрите на радугу{'\n'}
+              3. Поднимите взгляд на небо под углом ~42°{'\n'}
+              4. Радуга появится в виде дуги перед вами
+            </Text>
+          ) : (
+            <Text style={styles.instructionText}>
+              📍 Статичный компас:{'\n'}
+              1. Встаньте спиной к солнцу{'\n'}
+              2. Поверните телефон по направлению стрелки{'\n'}
+              3. Смотрите на небо под углом ~42°{'\n'}
+              4. Радуга появится в этом направлении
+            </Text>
+          )}
+        </View>
+        
+        {/* Калибровка */}
+        {isCompassAvailable && (
+          <View style={styles.calibrationTip}>
+            <Text style={styles.calibrationText}>
+              💡 Совет: для точности отойдите от металлических предметов и WiFi роутеров
+            </Text>
+          </View>
+        )}
     </View>
   );
 };
@@ -234,8 +353,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#374151',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  
+  compassStatus: {
+    fontSize: 14,
+    color: '#10b981',
     marginBottom: 10,
     textAlign: 'center',
+    fontWeight: '600',
   },
   
   compassSubtitle: {
@@ -339,6 +466,23 @@ const styles = StyleSheet.create({
     transformOrigin: '12px 112px',
   },
   
+  northIndicator: {
+    position: 'absolute',
+    top: -110,
+    backgroundColor: '#ef4444',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  northText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  
   directionInfo: {
     marginTop: 20,
     width: '100%',
@@ -381,7 +525,23 @@ const styles = StyleSheet.create({
   coordinates: {
     fontSize: 12,
     color: '#6b7280',
-    fontFamily: 'monospace',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  
+  calibrationTip: {
+    marginTop: 15,
+    padding: 12,
+    backgroundColor: 'rgba(245, 158, 11, 0.05)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  
+  calibrationText: {
+    fontSize: 12,
+    color: '#92400e',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   
   instructions: {
