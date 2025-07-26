@@ -1,0 +1,80 @@
+{
+  "expo": {
+    "name": "RainbowFinder",
+    "slug": "rainbowfinder",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "rainbowfinder",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6366f1"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rainbowfinder.app",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "RainbowFinder использует ваше местоположение для точного расчета положения солнца и погодных условий, необходимых для поиска радуги.",
+        "NSLocationAlwaysUsageDescription": "RainbowFinder использует ваше местоположение в фоне для отправки уведомлений о благоприятных условиях для наблюдения радуги.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "RainbowFinder использует ваше местоположение для точного астрономического расчета и уведомлений о радуге.",
+        "NSCameraUsageDescription": "Камера не используется в этом приложении.",
+        "NSMicrophoneUsageDescription": "Микрофон не используется в этом приложении."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6366f1"
+      },
+      "package": "com.rainbowfinder.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "WAKE_LOCK",
+        "SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "RainbowFinder использует ваше местоположение для точного астрономического расчета и поиска радуги.",
+          "locationAlwaysPermission": "RainbowFinder использует ваше местоположение в фоне для отправки уведомлений о благоприятных условиях для радуги.",
+          "locationWhenInUsePermission": "RainbowFinder использует ваше местоположение для точного расчета положения солнца и погодных условий.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6366f1",
+          "defaultChannel": "rainbow-alerts",
+          "sounds": ["./assets/notification.wav"]
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "rainbow-finder-scientific"
+      }
+    }
+  }
+} 
