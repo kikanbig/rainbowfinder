@@ -436,11 +436,11 @@ export default function App() {
    * Получение градиента для вероятности
    */
   const getProbabilityGradient = (probability) => {
-    if (probability >= 80) return ['#10d9c5', '#0fb8aa', '#0e9688']; // Яркий мятный
-    if (probability >= 60) return ['#48e5d7', '#3dd5c7', '#32c5b7']; // Светло-мятный
-    if (probability >= 40) return ['#7dd3fc', '#38bdf8', '#0ea5e9']; // Небесно-голубой
-    if (probability >= 20) return ['#a78bfa', '#8b5cf6', '#7c3aed']; // Мягкий фиолетовый
-    return ['#94a3b8', '#64748b', '#475569']; // Мягкий серый
+    if (probability >= 80) return ['#7fffd4', '#40e0d0', '#20b2aa']; // Аквамарин - яркая радуга
+    if (probability >= 60) return ['#ff7f50', '#ff6347', '#ff4500']; // Коралл - хорошая радуга
+    if (probability >= 40) return ['#dda0dd', '#da70d6', '#ba55d3']; // Орхидея - умеренная радуга
+    if (probability >= 20) return ['#f0e68c', '#ffd700', '#ffb347']; // Золотистый - слабая радуга
+    return ['#e6e6fa', '#d8bfd8', '#c8a2c8']; // Лаванда - радуга пока не видна
   };
 
   /**
@@ -448,22 +448,22 @@ export default function App() {
    */
   const getQualityDescription = (quality) => {
     const descriptions = {
-      none: 'Радуга невозможна',
-      very_weak: 'Очень слабая радуга',
-      weak: 'Слабая радуга',
+      none: 'Радуга пока не видна',
+      very_weak: 'Слабые признаки радуги',
+      weak: 'Едва заметная радуга',
       moderate: 'Умеренная радуга',
-      good: 'Хорошая радуга',
-      excellent: 'Превосходная радуга!'
+      good: 'Яркая радуга',
+      excellent: 'Волшебная радуга!'
     };
-    return descriptions[quality] || 'Неизвестно';
+    return descriptions[quality] || 'Ожидаем радугу';
   };
 
   if (loading) {
     return (
-      <LinearGradient colors={['#4ecdc4', '#44a08d']} style={styles.container}>
+      <LinearGradient colors={['#98ff98', '#87ceeb']} style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="white" />
-          <Text style={styles.loadingText}>Инициализация Rainbow for Kate...</Text>
+          <Text style={styles.loadingText}>Инициализация Kate's Rainbow...</Text>
           <Text style={styles.loadingSubtext}>
             Получение местоположения и погодных данных
           </Text>
@@ -475,10 +475,10 @@ export default function App() {
 
   if (!permissionsGranted) {
     return (
-      <LinearGradient colors={['#4ecdc4', '#44a08d']} style={styles.container}>
+      <LinearGradient colors={['#98ff98', '#87ceeb']} style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="location-outline" size={80} color="white" />
-          <Text style={styles.errorTitle}>Разрешения для Rainbow for Kate</Text>
+          <Text style={styles.errorTitle}>Разрешения для Kate's Rainbow</Text>
           <Text style={styles.errorText}>
             🌈 Для поиска радуги нужен доступ к вашему местоположению{'\n\n'}
             📍 Это необходимо для точных астрономических расчетов{'\n\n'}
@@ -495,7 +495,7 @@ export default function App() {
             onPress={() => {
               Alert.alert(
                 'Как дать разрешения',
-                '1. Нажмите "Настройки"\n2. Найдите "Rainbow for Kate"\n3. Включите "Местоположение"\n4. Вернитесь в приложение\n5. Нажмите "Повторить попытку"',
+                '1. Нажмите "Настройки"\n2. Найдите "Kate\'s Rainbow"\n3. Включите "Местоположение"\n4. Вернитесь в приложение\n5. Нажмите "Повторить попытку"',
                 [
                   { text: 'Понятно', style: 'default' },
                   { text: 'Настройки', onPress: () => {
@@ -521,7 +521,7 @@ export default function App() {
   }
 
   return (
-    <LinearGradient colors={['#4ecdc4', '#44a08d']} style={styles.container}>
+    <LinearGradient colors={['#98ff98', '#87ceeb']} style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -538,7 +538,7 @@ export default function App() {
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Text style={styles.titleEmoji}>🌈</Text>
-            <Text style={styles.title}>Rainbow for Kate</Text>
+            <Text style={styles.title}>Kate's Rainbow</Text>
           </View>
           
           <View style={styles.locationContainer}>
@@ -604,7 +604,7 @@ export default function App() {
               style={styles.cardContent}
             >
               <View style={styles.cardHeader}>
-                <Ionicons name="flask-outline" size={24} color="#32c5b7" />
+                <Ionicons name="flask-outline" size={24} color="#40e0d0" />
                 <Text style={styles.cardTitle}>Научный анализ</Text>
               </View>
               
@@ -617,7 +617,7 @@ export default function App() {
                   </Text>
                   <View style={[
                     styles.statusIndicator,
-                    { backgroundColor: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#10d9c5' : '#f87171' }
+                    { backgroundColor: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#7fffd4' : '#ffa07a' }
                   ]} />
                 </View>
                 
@@ -629,7 +629,7 @@ export default function App() {
                   </Text>
                   <View style={[
                     styles.statusIndicator,
-                    { backgroundColor: weather?.main?.humidity > 70 ? '#10d9c5' : '#f87171' }
+                    { backgroundColor: weather?.main?.humidity > 70 ? '#7fffd4' : '#ffa07a' }
                   ]} />
                 </View>
                 
@@ -641,7 +641,7 @@ export default function App() {
                   </Text>
                   <View style={[
                     styles.statusIndicator,
-                    { backgroundColor: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#10d9c5' : '#f87171' }
+                    { backgroundColor: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#7fffd4' : '#ffa07a' }
                   ]} />
                 </View>
                 
@@ -653,7 +653,7 @@ export default function App() {
                   </Text>
                   <View style={[
                     styles.statusIndicator,
-                    { backgroundColor: weather?.visibility > 5000 ? '#10d9c5' : '#f87171' }
+                    { backgroundColor: weather?.visibility > 5000 ? '#7fffd4' : '#ffa07a' }
                   ]} />
                 </View>
               </View>
@@ -686,14 +686,14 @@ export default function App() {
               style={styles.cardContent}
             >
               <View style={styles.cardHeader}>
-                <Ionicons name="sunny-outline" size={24} color="#10d9c5" />
+                <Ionicons name="sunny-outline" size={24} color="#ff7f50" />
                 <Text style={styles.cardTitle}>Солнечные события</Text>
               </View>
               
               <View style={styles.solarEventsContainer}>
                 <View style={styles.solarEvent}>
                   <View style={styles.solarIcon}>
-                    <Ionicons name="sunny-outline" size={32} color="#48e5d7" />
+                    <Ionicons name="sunny-outline" size={32} color="#ffd700" />
                   </View>
                   <Text style={styles.solarEventLabel}>Восход</Text>
                   <Text style={styles.solarEventTime}>
@@ -703,7 +703,7 @@ export default function App() {
                 
                 <View style={styles.solarEvent}>
                   <View style={styles.solarIcon}>
-                    <Ionicons name="sunny" size={32} color="#10d9c5" />
+                    <Ionicons name="sunny" size={32} color="#ff7f50" />
                   </View>
                   <Text style={styles.solarEventLabel}>Полдень</Text>
                   <Text style={styles.solarEventTime}>
@@ -713,7 +713,7 @@ export default function App() {
                 
                 <View style={styles.solarEvent}>
                   <View style={styles.solarIcon}>
-                    <Ionicons name="moon-outline" size={32} color="#7dd3fc" />
+                    <Ionicons name="moon-outline" size={32} color="#dda0dd" />
                   </View>
                   <Text style={styles.solarEventLabel}>Закат</Text>
                   <Text style={styles.solarEventTime}>
@@ -733,7 +733,7 @@ export default function App() {
               style={styles.cardContent}
             >
               <View style={styles.cardHeader}>
-                <Ionicons name="bulb-outline" size={24} color="#48e5d7" />
+                <Ionicons name="bulb-outline" size={24} color="#dda0dd" />
                 <Text style={styles.cardTitle}>Рекомендации</Text>
               </View>
               
@@ -757,7 +757,7 @@ export default function App() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#4ecdc4', '#44a08d']}
+            colors={['#ff7f50', '#ff6347']}
             style={styles.refreshButtonGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -774,12 +774,12 @@ export default function App() {
             style={styles.cardContent}
           >
             <View style={styles.cardHeader}>
-              <Ionicons name="information-circle-outline" size={24} color="#4ecdc4" />
+              <Ionicons name="information-circle-outline" size={24} color="#87ceeb" />
               <Text style={styles.cardTitle}>О приложении</Text>
             </View>
             
             <Text style={styles.infoText}>
-              Rainbow for Kate использует точные астрономические расчеты и метеорологические данные 
+              Kate's Rainbow использует точные астрономические расчеты и метеорологические данные 
               для определения вероятности появления радуги. Создано с любовью, основано на физических 
               законах оптики и угле Декарта (42°).
             </Text>
@@ -929,17 +929,18 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   titleEmoji: {
-    fontSize: 42,
-    marginRight: 15,
+    fontSize: 36,
+    marginRight: 12,
   },
   title: {
-    fontSize: 38,
+    fontSize: 32,
     fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 5,
+    letterSpacing: 0.5,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -1172,10 +1173,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#48e5d7',
+    backgroundColor: '#dda0dd',
     marginTop: 8,
     marginRight: 15,
-    shadowColor: '#48e5d7',
+    shadowColor: '#dda0dd',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,

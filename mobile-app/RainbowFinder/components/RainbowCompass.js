@@ -239,6 +239,18 @@ export const RainbowCompass = ({
             </LinearGradient>
           </View>
           
+          {/* Милая анимированная пчелка под стрелкой */}
+          <View
+            style={[
+              styles.beeIndicator,
+              {
+                transform: [{ rotate: `${arrowRotation}deg` }]
+              }
+            ]}
+          >
+            <Text style={styles.beeEmoji}>🐝</Text>
+          </View>
+          
           {/* Индикатор солнца (тоже поворачиваем если компас активен) */}
           <View
             style={[
@@ -590,5 +602,20 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     marginTop: 5,
+  },
+  
+  beeIndicator: {
+    position: 'absolute',
+    top: COMPASS_SIZE * 0.25, // Позиция под стрелкой
+    left: COMPASS_SIZE / 2 - 16,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  beeEmoji: {
+    fontSize: 24,
+    textAlign: 'center',
   },
 }); 
