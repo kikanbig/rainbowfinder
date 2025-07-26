@@ -249,9 +249,18 @@ export const RainbowCompass = ({
             <Ionicons name="sunny" size={16} color="#f59e0b" />
           </View>
           
-          {/* Индикатор севера (статичен) */}
+          {/* Индикатор севера (красная точка вверху компаса) */}
           {isCompassAvailable && (
-            <View style={styles.northIndicator}>
+            <View
+              style={[
+                styles.northIndicator,
+                {
+                  transform: [{ 
+                    rotate: `${-deviceHeading}deg` 
+                  }]
+                }
+              ]}
+            >
               <Text style={styles.northText}>N</Text>
             </View>
           )}
@@ -457,19 +466,21 @@ const styles = StyleSheet.create({
   
   sunIndicator: {
     position: 'absolute',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(245, 158, 11, 0.4)',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(245, 158, 11, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    top: 200, // Внутри компаса, напротив пчелки
-    transformOrigin: '14px -86px', // Поворот относительно центра компаса
+    top: 190, // Поднимаю выше, чтобы поместился в компас
+    transformOrigin: '13px -76px', // Центр компаса как точка поворота
     shadowColor: '#f59e0b',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.9,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
   },
   
   northIndicator: {

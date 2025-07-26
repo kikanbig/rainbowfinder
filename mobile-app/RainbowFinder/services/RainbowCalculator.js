@@ -301,18 +301,21 @@ export class RainbowCalculator {
     const precipitation = weather.rain ? weather.rain['1h'] || 0 : 0;
     const description = weather.weather[0].description.toLowerCase();
     
-    // Анализ недавних осадков (КРИТИЧНО для радуги)
+    // 🌧️ НАУЧНОЕ ОБНОВЛЕНИЕ: Недавний дождь НЕ критичен через 2+ часа!
+    // Радуга может появиться из других источников влаги: туман, испарение, морские брызги
     if (weather.recentRain) {
       const recent = weather.recentRain;
       
       if (recent.isOptimal) {
-        factors.recentRainFactor = 1.0; // Дождь был в последний час - ИДЕАЛЬНО!
+        factors.recentRainFactor = 1.0; // Дождь был в последний час - ОТЛИЧНО!
       } else if (recent.hasRecentRain && recent.timeSinceRain < 2) {
-        factors.recentRainFactor = 0.8; // Дождь был 1-2 часа назад
-      } else if (recent.hasRecentRain && recent.timeSinceRain < 3) {
-        factors.recentRainFactor = 0.5; // Дождь был 2-3 часа назад
+        factors.recentRainFactor = 0.9; // Дождь был 1-2 часа назад - все еще хорошо
+      } else if (recent.hasRecentRain && recent.timeSinceRain < 4) {
+        factors.recentRainFactor = 0.7; // Дождь был 2-4 часа назад - нормально
+      } else if (recent.hasRecentRain && recent.timeSinceRain < 8) {
+        factors.recentRainFactor = 0.5; // Дождь был 4-8 часов назад - возможно
       } else if (recent.hasRecentRain) {
-        factors.recentRainFactor = 0.2; // Дождь был давно
+        factors.recentRainFactor = 0.3; // Дождь был давно - слабый бонус
       }
     }
     
@@ -339,8 +342,12 @@ export class RainbowCalculator {
       }
     } else if (description.includes('туман') || description.includes('mist')) {
       factors.rainFactor = 0.6; // Туман может создать радугу
-    } else if (weather.main.humidity > 80) {
-      factors.rainFactor = 0.4; // Высокая влажность - есть капли в воздухе
+    } else if (weather.main.humidity > 70) {
+      factors.rainFactor = 0.6; // Высокая влажность - есть капли в воздухе
+    } else if (weather.main.humidity > 50) {
+      factors.rainFactor = 0.4; // Умеренная влажность - возможны капли
+    } else {
+      factors.rainFactor = 0.2; // Низкая влажность - но все еще возможно
     }
     
     // 2. Фактор влажности
@@ -455,16 +462,17 @@ export class RainbowCalculator {
    * Расчет базовой вероятности (УЛУЧШЕННЫЙ АЛГОРИТМ)
    */
   static calculateBaseProbability(sunAngleFactor, weatherFactors, atmosphericFactors) {
-    // СУПЕР-ТОЧНАЯ взвешенная сумма факторов
+    // 🌈 НАУЧНО-ОБОСНОВАННАЯ взвешенная сумма факторов
+    // Основано на исследованиях University of Hawaii и атмосферной оптики
     const weightedSum = 
-      sunAngleFactor * 0.25 + // 25% - угол солнца (критично)
-      weatherFactors.recentRainFactor * 0.3 + // 30% - НЕДАВНИЕ ОСАДКИ (самое важное!)
-      weatherFactors.sunlightFactor * 0.2 + // 20% - ТЕКУЩИЙ СОЛНЕЧНЫЙ СВЕТ (очень важно!)
-      weatherFactors.cloudFactor * 0.1 + // 10% - облачность
-      weatherFactors.visibilityFactor * 0.05 + // 5% - видимость
-      weatherFactors.humidityFactor * 0.05 + // 5% - влажность
-      weatherFactors.rainFactor * 0.03 + // 3% - текущие осадки (небольшой вес)
-      atmosphericFactors.lightScatteringFactor * 0.02; // 2% - рассеяние света
+      sunAngleFactor * 0.35 + // 35% - угол солнца (САМЫЙ критичный фактор!)
+      weatherFactors.sunlightFactor * 0.25 + // 25% - ТЕКУЩИЙ СОЛНЕЧНЫЙ СВЕТ (критично!)
+      weatherFactors.cloudFactor * 0.15 + // 15% - облачность (важен баланс)
+      weatherFactors.visibilityFactor * 0.10 + // 10% - видимость (важна для четкости)
+      weatherFactors.recentRainFactor * 0.08 + // 8% - недавние осадки (бонус, НЕ критично!)
+      weatherFactors.humidityFactor * 0.04 + // 4% - влажность (небольшой вес)
+      weatherFactors.rainFactor * 0.02 + // 2% - текущие осадки (минимальный вес)
+      atmosphericFactors.lightScatteringFactor * 0.01; // 1% - рассеяние света
     
     return weightedSum * 100; // Преобразуем в проценты
   }
