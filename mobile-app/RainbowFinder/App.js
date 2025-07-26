@@ -436,11 +436,11 @@ export default function App() {
    * Получение градиента для вероятности
    */
   const getProbabilityGradient = (probability) => {
-    if (probability >= 80) return ['#10b981', '#059669', '#047857']; // Зеленый
-    if (probability >= 60) return ['#f59e0b', '#d97706', '#b45309']; // Янтарный
-    if (probability >= 40) return ['#ef4444', '#dc2626', '#b91c1c']; // Красный
-    if (probability >= 20) return ['#8b5cf6', '#7c3aed', '#6d28d9']; // Фиолетовый
-    return ['#6b7280', '#4b5563', '#374151']; // Серый
+    if (probability >= 80) return ['#10d9c5', '#0fb8aa', '#0e9688']; // Яркий мятный
+    if (probability >= 60) return ['#48e5d7', '#3dd5c7', '#32c5b7']; // Светло-мятный
+    if (probability >= 40) return ['#7dd3fc', '#38bdf8', '#0ea5e9']; // Небесно-голубой
+    if (probability >= 20) return ['#a78bfa', '#8b5cf6', '#7c3aed']; // Мягкий фиолетовый
+    return ['#94a3b8', '#64748b', '#475569']; // Мягкий серый
   };
 
   /**
@@ -460,10 +460,10 @@ export default function App() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+      <LinearGradient colors={['#4ecdc4', '#44a08d']} style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="white" />
-          <Text style={styles.loadingText}>Инициализация RainbowFinder...</Text>
+          <Text style={styles.loadingText}>Инициализация Rainbow for Kate...</Text>
           <Text style={styles.loadingSubtext}>
             Получение местоположения и погодных данных
           </Text>
@@ -475,10 +475,10 @@ export default function App() {
 
   if (!permissionsGranted) {
     return (
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+      <LinearGradient colors={['#4ecdc4', '#44a08d']} style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="location-outline" size={80} color="white" />
-          <Text style={styles.errorTitle}>Разрешения для RainbowFinder</Text>
+          <Text style={styles.errorTitle}>Разрешения для Rainbow for Kate</Text>
           <Text style={styles.errorText}>
             🌈 Для поиска радуги нужен доступ к вашему местоположению{'\n\n'}
             📍 Это необходимо для точных астрономических расчетов{'\n\n'}
@@ -495,7 +495,7 @@ export default function App() {
             onPress={() => {
               Alert.alert(
                 'Как дать разрешения',
-                '1. Нажмите "Настройки"\n2. Найдите "RainbowFinder"\n3. Включите "Местоположение"\n4. Вернитесь в приложение\n5. Нажмите "Повторить попытку"',
+                '1. Нажмите "Настройки"\n2. Найдите "Rainbow for Kate"\n3. Включите "Местоположение"\n4. Вернитесь в приложение\n5. Нажмите "Повторить попытку"',
                 [
                   { text: 'Понятно', style: 'default' },
                   { text: 'Настройки', onPress: () => {
@@ -521,7 +521,7 @@ export default function App() {
   }
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+    <LinearGradient colors={['#4ecdc4', '#44a08d']} style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -538,7 +538,7 @@ export default function App() {
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Text style={styles.titleEmoji}>🌈</Text>
-            <Text style={styles.title}>RainbowFinder</Text>
+            <Text style={styles.title}>Rainbow for Kate</Text>
           </View>
           
           <View style={styles.locationContainer}>
@@ -604,7 +604,7 @@ export default function App() {
               style={styles.cardContent}
             >
               <View style={styles.cardHeader}>
-                <Ionicons name="flask-outline" size={24} color="#374151" />
+                <Ionicons name="flask-outline" size={24} color="#32c5b7" />
                 <Text style={styles.cardTitle}>Научный анализ</Text>
               </View>
               
@@ -617,7 +617,7 @@ export default function App() {
                   </Text>
                   <View style={[
                     styles.statusIndicator,
-                    { backgroundColor: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#10b981' : '#ef4444' }
+                    { backgroundColor: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#10d9c5' : '#f87171' }
                   ]} />
                 </View>
                 
@@ -629,7 +629,7 @@ export default function App() {
                   </Text>
                   <View style={[
                     styles.statusIndicator,
-                    { backgroundColor: weather?.main?.humidity > 70 ? '#10b981' : '#ef4444' }
+                    { backgroundColor: weather?.main?.humidity > 70 ? '#10d9c5' : '#f87171' }
                   ]} />
                 </View>
                 
@@ -641,7 +641,7 @@ export default function App() {
                   </Text>
                   <View style={[
                     styles.statusIndicator,
-                    { backgroundColor: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#10b981' : '#ef4444' }
+                    { backgroundColor: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#10d9c5' : '#f87171' }
                   ]} />
                 </View>
                 
@@ -653,7 +653,7 @@ export default function App() {
                   </Text>
                   <View style={[
                     styles.statusIndicator,
-                    { backgroundColor: weather?.visibility > 5000 ? '#10b981' : '#ef4444' }
+                    { backgroundColor: weather?.visibility > 5000 ? '#10d9c5' : '#f87171' }
                   ]} />
                 </View>
               </View>
@@ -686,14 +686,14 @@ export default function App() {
               style={styles.cardContent}
             >
               <View style={styles.cardHeader}>
-                <Ionicons name="sunny-outline" size={24} color="#f59e0b" />
+                <Ionicons name="sunny-outline" size={24} color="#10d9c5" />
                 <Text style={styles.cardTitle}>Солнечные события</Text>
               </View>
               
               <View style={styles.solarEventsContainer}>
                 <View style={styles.solarEvent}>
                   <View style={styles.solarIcon}>
-                    <Ionicons name="sunrise" size={32} color="#f59e0b" />
+                    <Ionicons name="sunny-outline" size={32} color="#48e5d7" />
                   </View>
                   <Text style={styles.solarEventLabel}>Восход</Text>
                   <Text style={styles.solarEventTime}>
@@ -703,7 +703,7 @@ export default function App() {
                 
                 <View style={styles.solarEvent}>
                   <View style={styles.solarIcon}>
-                    <Ionicons name="sunny" size={32} color="#fbbf24" />
+                    <Ionicons name="sunny" size={32} color="#10d9c5" />
                   </View>
                   <Text style={styles.solarEventLabel}>Полдень</Text>
                   <Text style={styles.solarEventTime}>
@@ -713,7 +713,7 @@ export default function App() {
                 
                 <View style={styles.solarEvent}>
                   <View style={styles.solarIcon}>
-                    <Ionicons name="sunset" size={32} color="#f97316" />
+                    <Ionicons name="moon-outline" size={32} color="#7dd3fc" />
                   </View>
                   <Text style={styles.solarEventLabel}>Закат</Text>
                   <Text style={styles.solarEventTime}>
@@ -733,7 +733,7 @@ export default function App() {
               style={styles.cardContent}
             >
               <View style={styles.cardHeader}>
-                <Ionicons name="bulb-outline" size={24} color="#8b5cf6" />
+                <Ionicons name="bulb-outline" size={24} color="#48e5d7" />
                 <Text style={styles.cardTitle}>Рекомендации</Text>
               </View>
               
@@ -757,7 +757,7 @@ export default function App() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#667eea', '#764ba2']}
+            colors={['#4ecdc4', '#44a08d']}
             style={styles.refreshButtonGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -774,14 +774,14 @@ export default function App() {
             style={styles.cardContent}
           >
             <View style={styles.cardHeader}>
-              <Ionicons name="information-circle-outline" size={24} color="#6366f1" />
+              <Ionicons name="information-circle-outline" size={24} color="#4ecdc4" />
               <Text style={styles.cardTitle}>О приложении</Text>
             </View>
             
             <Text style={styles.infoText}>
-              RainbowFinder использует точные астрономические расчеты и метеорологические данные 
-              для определения вероятности появления радуги. Основано на физических законах оптики 
-              и угле Декарта (42°).
+              Rainbow for Kate использует точные астрономические расчеты и метеорологические данные 
+              для определения вероятности появления радуги. Создано с любовью, основано на физических 
+              законах оптики и угле Декарта (42°).
             </Text>
             
             <View style={styles.infoFooter}>
@@ -1172,10 +1172,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#48e5d7',
     marginTop: 8,
     marginRight: 15,
-    shadowColor: '#8b5cf6',
+    shadowColor: '#48e5d7',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
