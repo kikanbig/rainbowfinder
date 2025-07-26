@@ -95,37 +95,47 @@ export const RainbowCompass = ({
     );
   }
   
-  // 🐝 ПЧЕЛКА ВСЕГДА ПОКАЗЫВАЕТ НАПРОТИВ РЕАЛЬНОГО СОЛНЦА!
-  // Используем ТОЛЬКО реальную позицию солнца из датчиков (по требованию пользователя)
+  // 🐝 СУПЕР-ТОЧНАЯ ЛОГИКА: ПЧЕЛКА СТРОГО НАПРОТИВ СОЛНЦА!
   let targetDirection = 0;
   let isRainbowDirection = false;
   
   if (sunPosition && sunPosition.azimuth !== undefined) {
-    // 🐝 ПЧЕЛКА СТРОГО НАПРОТИВ СОЛНЦА! (физический закон радуги)
-    // Используем простое добавление 180° без модуля для избежания ошибок
-    targetDirection = sunPosition.azimuth + 180;
-    if (targetDirection >= 360) {
-      targetDirection -= 360;
-    }
-    isRainbowDirection = true; // Теперь всегда реальное направление
+    // ФИЗИЧЕСКИЙ ЗАКОН: Радуга всегда появляется в противосолнечной точке
+    // Если солнце на востоке (90°), радуга на западе (270°)
+    // Если солнце на юге (180°), радуга на севере (0°/360°)
+    
+    const sunAzimuth = sunPosition.azimuth;
+    targetDirection = (sunAzimuth + 180) % 360;
+    
+    isRainbowDirection = true;
+    
+    // 🔍 ОТЛАДКА: Логируем для проверки
+    console.log('🌞 Солнце азимут:', sunAzimuth);
+    console.log('🐝 Пчелка направление:', targetDirection);
+    console.log('📐 Должна быть разница 180°:', Math.abs(targetDirection - sunAzimuth));
   } else {
     // Резерв: если нет данных о солнце, используем расчетное направление
     targetDirection = rainbowDirection?.center || 0;
     isRainbowDirection = false;
   }
   
-  // Вычисляем угол поворота стрелки относительно устройства
+  // 🔄 НОВАЯ ЛОГИКА: Убираем корректировки для чистого тестирования
   let arrowRotation;
   if (isCompassAvailable) {
-    // Настоящий компас: стрелка указывает на радугу независимо от поворота телефона
-    arrowRotation = targetDirection - deviceHeading - 90; // -90 для корректировки начального положения
+    // Компас активен: пчелка поворачивается относительно магнитного севера
+    arrowRotation = targetDirection - deviceHeading;
   } else {
-    // Статичный компас: стрелка просто указывает направление
-    arrowRotation = targetDirection - 90;
+    // Статичный режим: пчелка просто указывает направление
+    arrowRotation = targetDirection;
   }
   
   // Нормализуем угол
   arrowRotation = ((arrowRotation % 360) + 360) % 360;
+  
+  // 🔍 ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
+  console.log('🧭 deviceHeading:', deviceHeading);
+  console.log('🎯 targetDirection:', targetDirection);
+  console.log('🔄 arrowRotation:', arrowRotation);
 
   // Функция для получения названия направления
   const getDirectionName = (degrees) => {
@@ -238,15 +248,15 @@ export const RainbowCompass = ({
             </View>
           </View>
           
-          {/* Индикатор солнца (тоже поворачиваем если компас активен) */}
+          {/* Индикатор солнца (новая логика без корректировок) */}
           <View
             style={[
               styles.sunIndicator,
               {
                 transform: [{ 
                   rotate: `${isCompassAvailable 
-                    ? (sunPosition?.azimuth || 0) - deviceHeading - 90
-                    : (sunPosition?.azimuth || 0) - 90
+                    ? (sunPosition?.azimuth || 0) - deviceHeading
+                    : (sunPosition?.azimuth || 0)
                   }deg` 
                 }]
               }
@@ -255,7 +265,7 @@ export const RainbowCompass = ({
             <Ionicons name="sunny" size={16} color="#f59e0b" />
           </View>
           
-          {/* Индикатор севера (красная точка вверху компаса) */}
+          {/* Индикатор севера (красная точка указывает истинный север) */}
           {isCompassAvailable && (
             <View
               style={[
@@ -283,12 +293,38 @@ export const RainbowCompass = ({
             </Text>
           </View>
           {sunPosition && (
-            <View style={styles.directionRow}>
-              <Text style={styles.directionLabel}>☀️ Солнце:</Text>
-              <Text style={[styles.directionValue, { color: '#f59e0b' }]}>
-                {Math.round(sunPosition.azimuth)}° (разница: {Math.round(Math.abs(targetDirection - sunPosition.azimuth))}°)
-              </Text>
-            </View>
+            <>
+              <View style={styles.directionRow}>
+                <Text style={styles.directionLabel}>☀️ Солнце:</Text>
+                <Text style={[styles.directionValue, { color: '#f59e0b' }]}>
+                  {Math.round(sunPosition.azimuth)}°
+                </Text>
+              </View>
+              <View style={styles.directionRow}>
+                <Text style={styles.directionLabel}>🔄 Поворот пчелки:</Text>
+                <Text style={[styles.directionValue, { color: '#9333ea' }]}>
+                  {Math.round(arrowRotation)}°
+                </Text>
+              </View>
+              <View style={styles.directionRow}>
+                <Text style={styles.directionLabel}>🧭 Магнитометр:</Text>
+                <Text style={[styles.directionValue, { color: '#059669' }]}>
+                  {Math.round(deviceHeading)}°
+                </Text>
+              </View>
+              <View style={styles.directionRow}>
+                <Text style={styles.directionLabel}>📐 Разница:</Text>
+                <Text style={[styles.directionValue, { color: Math.abs(targetDirection - sunPosition.azimuth) > 170 ? '#10b981' : '#ef4444' }]}>
+                  {Math.round(Math.abs(targetDirection - sunPosition.azimuth))}° {Math.abs(targetDirection - sunPosition.azimuth) > 170 ? '✅' : '❌'}
+                </Text>
+              </View>
+              <View style={styles.directionRow}>
+                <Text style={styles.directionLabel}>🧪 Тест:</Text>
+                <Text style={[styles.directionValue, { color: '#6366f1', fontSize: 12 }]}>
+                  Солнце {Math.round(sunPosition.azimuth)}° → Пчелка должна быть {Math.round((sunPosition.azimuth + 180) % 360)}°
+                </Text>
+              </View>
+            </>
           )}
           
           {isCompassAvailable && (
