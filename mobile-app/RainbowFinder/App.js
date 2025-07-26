@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { WeatherService } from './services/WeatherService';
 import { RainbowCalculator } from './services/RainbowCalculator';
 import { SunCalculator } from './services/SunCalculator';
+import { notificationService } from './services/NotificationService';
 import { RainbowCompass } from './components/RainbowCompass';
 import Logger from './utils/Logger';
 
@@ -121,6 +122,18 @@ export default function App() {
         const locationText = name ? `${name.city}, ${name.country}` : 'Неизвестное место';
         setLocationName(locationText);
         Logger.info('APP', 'Название места получено', { name: locationText });
+        
+        // 📱 Обновляем локацию в сервисе уведомлений
+        try {
+          await notificationService.updateUserLocation(
+            currentLocation.coords.latitude,
+            currentLocation.coords.longitude,
+            locationText
+          );
+          Logger.success('APP', 'Локация обновлена в сервисе уведомлений');
+        } catch (notifError) {
+          Logger.warn('APP', 'Не удалось обновить локацию в сервисе уведомлений', notifError);
+        }
       } catch (nameError) {
         Logger.warn('APP', 'Не удалось получить название места', nameError);
         setLocationName('Неизвестное место');
@@ -159,12 +172,12 @@ export default function App() {
       if (currentLocationStatus === 'granted') {
         Logger.success('APP', 'Разрешение на геолокацию уже есть!');
         
-        // Пытаемся получить уведомления (не критично)
+        // 📱 Инициализируем новый сервис уведомлений
         try {
-          await Notifications.requestPermissionsAsync();
-          Logger.info('APP', 'Уведомления запрошены');
+          await notificationService.initialize();
+          Logger.success('APP', 'Сервис уведомлений инициализирован');
         } catch (e) {
-          Logger.warn('APP', 'Уведомления недоступны');
+          Logger.warn('APP', 'Уведомления недоступны', e);
         }
         
         return true;
@@ -178,11 +191,12 @@ export default function App() {
       if (newLocationStatus === 'granted') {
         Logger.success('APP', 'Разрешение получено!');
         
-        // Пытаемся получить уведомления
+        // 📱 Инициализируем новый сервис уведомлений
         try {
-          await Notifications.requestPermissionsAsync();
+          await notificationService.initialize();
+          Logger.success('APP', 'Сервис уведомлений инициализирован');
         } catch (e) {
-          // Игнорируем ошибки уведомлений
+          Logger.warn('APP', 'Уведомления недоступны', e);
         }
         
         return true;

@@ -18,11 +18,8 @@ import cron from 'node-cron';
 import rateLimit from 'express-rate-limit';
 
 // Services
-import { WeatherMonitorService } from './services/WeatherMonitorService';
-import { NotificationService } from './services/NotificationService';
-import { RainbowCalculatorService } from './services/RainbowCalculatorService';
-import { DatabaseService } from './services/DatabaseService';
-import { logger } from './utils/logger';
+const { WeatherMonitorService } = require('./services/WeatherMonitorService');
+const { NotificationService } = require('./services/NotificationService');
 
 // Routes
 import weatherRoutes from './routes/weather';
