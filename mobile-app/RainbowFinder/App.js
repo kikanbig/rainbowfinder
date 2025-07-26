@@ -436,11 +436,11 @@ export default function App() {
    * Получение градиента для вероятности
    */
   const getProbabilityGradient = (probability) => {
-    if (probability >= 80) return ['#7fffd4', '#40e0d0', '#20b2aa']; // Аквамарин - яркая радуга
-    if (probability >= 60) return ['#ff7f50', '#ff6347', '#ff4500']; // Коралл - хорошая радуга
-    if (probability >= 40) return ['#dda0dd', '#da70d6', '#ba55d3']; // Орхидея - умеренная радуга
-    if (probability >= 20) return ['#f0e68c', '#ffd700', '#ffb347']; // Золотистый - слабая радуга
-    return ['#e6e6fa', '#d8bfd8', '#c8a2c8']; // Лаванда - радуга пока не видна
+    if (probability >= 80) return ['#EDEAB1', '#FFE156', '#F0E68C']; // Celestial Yellow - волшебная радуга
+    if (probability >= 60) return ['#FF654F', '#FF7F50', '#FF8C69']; // Neon Flare - яркая радуга
+    if (probability >= 40) return ['#71ADBA', '#87CEEB', '#B0E0E6']; // Retro Blue - умеренная радуга
+    if (probability >= 20) return ['#DDA0DD', '#D8BFD8', '#E6E6FA']; // Мягкие фиолетовые - слабая радуга
+    return ['#4C5578', '#6A7B8A', '#8A9BA8']; // Future Dusk - радуга пока не видна
   };
 
   /**
@@ -460,7 +460,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#98ff98', '#87ceeb']} style={styles.container}>
+      <LinearGradient colors={['#4C5578', '#71ADBA']} style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="white" />
           <Text style={styles.loadingText}>Инициализация Kate's Rainbow...</Text>
@@ -475,7 +475,7 @@ export default function App() {
 
   if (!permissionsGranted) {
     return (
-      <LinearGradient colors={['#98ff98', '#87ceeb']} style={styles.container}>
+      <LinearGradient colors={['#4C5578', '#71ADBA']} style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="location-outline" size={80} color="white" />
           <Text style={styles.errorTitle}>Разрешения для Kate's Rainbow</Text>
@@ -521,7 +521,7 @@ export default function App() {
   }
 
   return (
-    <LinearGradient colors={['#98ff98', '#87ceeb']} style={styles.container}>
+    <LinearGradient colors={['#4C5578', '#71ADBA']} style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -608,8 +608,8 @@ export default function App() {
               <View style={styles.modernCard}>
                 <LinearGradient
                   colors={sunData?.position.altitude > 0 && sunData?.position.altitude < 42 
-                    ? ['#7fffd4', '#40e0d0'] 
-                    : ['#ffa07a', '#ff7f50']}
+                    ? ['#EDEAB1', '#FFE156'] 
+                    : ['#FF654F', '#FF8C69']}
                   style={styles.modernCardGradient}
                 >
                   <Text style={styles.modernCardIcon}>☀️</Text>
@@ -623,7 +623,7 @@ export default function App() {
                   ]}>
                     <Text style={[
                       styles.modernCardStatusText,
-                      { color: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#40e0d0' : '#ff7f50' }
+                      { color: sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? '#4C5578' : '#FF654F' }
                     ]}>
                       {sunData?.position.altitude > 0 && sunData?.position.altitude < 42 ? 'Отлично' : 'Не подходит'}
                     </Text>
@@ -635,8 +635,8 @@ export default function App() {
               <View style={styles.modernCard}>
                 <LinearGradient
                   colors={weather?.main?.humidity > 70 
-                    ? ['#7fffd4', '#40e0d0'] 
-                    : ['#ffa07a', '#ff7f50']}
+                    ? ['#71ADBA', '#87CEEB'] 
+                    : ['#FF654F', '#FF8C69']}
                   style={styles.modernCardGradient}
                 >
                   <Text style={styles.modernCardIcon}>💧</Text>
@@ -650,7 +650,7 @@ export default function App() {
                   ]}>
                     <Text style={[
                       styles.modernCardStatusText,
-                      { color: weather?.main?.humidity > 70 ? '#40e0d0' : '#ff7f50' }
+                      { color: weather?.main?.humidity > 70 ? '#4C5578' : '#FF654F' }
                     ]}>
                       {weather?.main?.humidity > 70 ? 'Отлично' : 'Низкая'}
                     </Text>
@@ -664,8 +664,8 @@ export default function App() {
               <View style={styles.modernCard}>
                 <LinearGradient
                   colors={weather?.clouds?.all > 20 && weather?.clouds?.all < 80 
-                    ? ['#7fffd4', '#40e0d0'] 
-                    : ['#ffa07a', '#ff7f50']}
+                    ? ['#DDA0DD', '#D8BFD8'] 
+                    : ['#FF654F', '#FF8C69']}
                   style={styles.modernCardGradient}
                 >
                   <Text style={styles.modernCardIcon}>☁️</Text>
@@ -679,7 +679,7 @@ export default function App() {
                   ]}>
                     <Text style={[
                       styles.modernCardStatusText,
-                      { color: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#40e0d0' : '#ff7f50' }
+                      { color: weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? '#4C5578' : '#FF654F' }
                     ]}>
                       {weather?.clouds?.all > 20 && weather?.clouds?.all < 80 ? 'Идеально' : 'Не подходит'}
                     </Text>
@@ -691,8 +691,8 @@ export default function App() {
               <View style={styles.modernCard}>
                 <LinearGradient
                   colors={weather?.visibility > 5000 
-                    ? ['#7fffd4', '#40e0d0'] 
-                    : ['#ffa07a', '#ff7f50']}
+                    ? ['#4C5578', '#6A7B8A'] 
+                    : ['#FF654F', '#FF8C69']}
                   style={styles.modernCardGradient}
                 >
                   <Text style={styles.modernCardIcon}>👁️</Text>
@@ -706,7 +706,7 @@ export default function App() {
                   ]}>
                     <Text style={[
                       styles.modernCardStatusText,
-                      { color: weather?.visibility > 5000 ? '#40e0d0' : '#ff7f50' }
+                      { color: weather?.visibility > 5000 ? '#4C5578' : '#FF654F' }
                     ]}>
                       {weather?.visibility > 5000 ? 'Отлично' : 'Плохая'}
                     </Text>
@@ -741,10 +741,9 @@ export default function App() {
               colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
               style={styles.cardContent}
             >
-              <View style={styles.cardHeader}>
-                <Ionicons name="sunny-outline" size={24} color="#ff7f50" />
-                <Text style={styles.cardTitle}>Солнечные события</Text>
-              </View>
+              <Text style={styles.modernCardTitle}>
+                <Ionicons name="sunny-outline" size={20} color="#ff7f50" /> Солнечные события
+              </Text>
               
               <View style={styles.solarEventsContainer}>
                 <View style={styles.solarEvent}>
@@ -788,10 +787,9 @@ export default function App() {
               colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
               style={styles.cardContent}
             >
-              <View style={styles.cardHeader}>
-                <Ionicons name="bulb-outline" size={24} color="#dda0dd" />
-                <Text style={styles.cardTitle}>Рекомендации</Text>
-              </View>
+              <Text style={styles.modernCardTitle}>
+                <Ionicons name="bulb-outline" size={20} color="#dda0dd" /> Рекомендации
+              </Text>
               
               {rainbowData.recommendations.map((recommendation, index) => (
                 <View key={index} style={styles.recommendationItem}>
@@ -813,7 +811,7 @@ export default function App() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#ff7f50', '#ff6347']}
+            colors={['#FF654F', '#71ADBA']}
             style={styles.refreshButtonGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -829,10 +827,9 @@ export default function App() {
             colors={['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.6)']}
             style={styles.cardContent}
           >
-            <View style={styles.cardHeader}>
-              <Ionicons name="information-circle-outline" size={24} color="#87ceeb" />
-              <Text style={styles.cardTitle}>О приложении</Text>
-            </View>
+            <Text style={styles.modernCardTitle}>
+              <Ionicons name="heart" size={20} color="#FF654F" /> Для Кати с любовью
+            </Text>
             
             <Text style={styles.infoText}>
               Катя, я очень тебя люблю. И сделал это приложение для того, чтобы ты видела чудеса.
@@ -1121,6 +1118,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#374151',
     marginLeft: 12,
+  },
+  modernCardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4C5578', // Future Dusk - модный цвет 2025
+    marginBottom: 15,
+    textAlign: 'center',
+    textShadowColor: 'rgba(76, 85, 120, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   modernAnalysisContainer: {
     marginBottom: 25,

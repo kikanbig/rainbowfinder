@@ -457,19 +457,19 @@ const styles = StyleSheet.create({
   
   sunIndicator: {
     position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(245, 158, 11, 0.3)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(245, 158, 11, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    top: 210, // Напротив пчелки, внутри компаса
-    transformOrigin: '15px -75px', // Центр компаса как точка поворота
+    top: 200, // Внутри компаса, напротив пчелки
+    transformOrigin: '14px -86px', // Поворот относительно центра компаса
     shadowColor: '#f59e0b',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    elevation: 4,
   },
   
   northIndicator: {
