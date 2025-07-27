@@ -77,11 +77,17 @@ export default function App() {
   }, [location, permissionsGranted]);
 
   /**
-   * Безопасное обновление состояния (только если компонент смонтирован)
+   * 🛡️ МАКСИМАЛЬНО БЕЗОПАСНОЕ ОБНОВЛЕНИЕ СОСТОЯНИЯ
    */
   const safeSetState = useCallback((setter, value) => {
-    if (isMountedRef.current) {
-      setter(value);
+    // ✅ Тройная защита от краша!
+    if (isMountedRef.current && typeof setter === 'function') {
+      try {
+        setter(value);
+      } catch (setterError) {
+        Logger.error('APP', 'Ошибка обновления состояния', { setterError, value });
+        // Не ломаем приложение из-за setState
+      }
     }
   }, []);
 
@@ -244,25 +250,46 @@ export default function App() {
   };
 
   /**
-   * Обновление данных о радуге (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+   * 🛡️ СУПЕР-ЗАЩИЩЁННОЕ ОБНОВЛЕНИЕ ДАННЫХ О РАДУГЕ
    */
   const updateRainbowData = async (showLoading = true) => {
+    // ✅ Проверяем параметры
+    if (typeof showLoading !== 'boolean') {
+      Logger.warn('APP', 'Неправильный параметр showLoading', showLoading);
+      showLoading = true;
+    }
+    
     if (!isMountedRef.current || updateInProgressRef.current) {
       Logger.info('APP', 'Обновление пропущено: компонент размонтирован или обновление уже идет');
       return;
     }
 
-    if (!location) {
-      Alert.alert('Ошибка', 'Местоположение не определено. Проверьте разрешения на геолокацию.');
+    if (!location || !location.coords) {
+      Logger.error('APP', 'Некорректное местоположение', location);
+      Alert.alert('Ошибка', 'Местоположение не определено. Проверьте разрешения на геолокацию.', [
+        { text: 'OK', style: 'cancel' }
+      ]);
       return;
     }
 
     updateInProgressRef.current = true;
 
     try {
-      if (showLoading && isMountedRef.current) safeSetState(setLoading, true);
+      if (showLoading) safeSetState(setLoading, true);
       
       const { latitude, longitude } = location.coords;
+      
+      // ✅ Проверяем что координаты корректные
+      if (typeof latitude !== 'number' || typeof longitude !== 'number' || 
+          isNaN(latitude) || isNaN(longitude) ||
+          latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        Logger.error('APP', 'Некорректные координаты', { latitude, longitude });
+        Alert.alert('Ошибка', 'Получены некорректные координаты. Попробуйте переместиться и обновить.', [
+          { text: 'OK', style: 'cancel' }
+        ]);
+        return;
+      }
+      
       Logger.info('APP', 'Обновление данных для координат', { latitude, longitude });
       
       // 1. Получение погодных данных (с детальной обработкой ошибок)
@@ -283,8 +310,7 @@ export default function App() {
             'Ошибка погодных данных', 
             `Не удалось получить данные о погоде:\n${weatherError.message}\n\nПроверьте интернет-соединение.`,
             [
-              { text: 'Попробовать снова', onPress: () => updateRainbowData(showLoading) },
-              { text: 'Отмена', style: 'cancel' }
+              { text: 'OK', style: 'cancel' }
             ]
           );
         }
@@ -308,7 +334,9 @@ export default function App() {
         Logger.error('APP', 'Ошибка астрономических расчетов', sunError);
         
         if (isMountedRef.current) {
-          Alert.alert('Ошибка', 'Ошибка в астрономических расчетах');
+          Alert.alert('Ошибка', 'Ошибка в астрономических расчетах', [
+            { text: 'OK', style: 'cancel' }
+          ]);
         }
         return;
       }
@@ -335,7 +363,9 @@ export default function App() {
         Logger.error('APP', 'Ошибка расчета радуги', rainbowError);
         
         if (isMountedRef.current) {
-          Alert.alert('Ошибка', 'Ошибка в расчете вероятности радуги');
+          Alert.alert('Ошибка', 'Ошибка в расчете вероятности радуги', [
+            { text: 'OK', style: 'cancel' }
+          ]);
         }
         return;
       }
@@ -365,52 +395,66 @@ export default function App() {
           'Ошибка обновления', 
           `Произошла ошибка при обновлении данных: ${error.message || 'Неизвестная ошибка'}`,
           [
-            { text: 'Попробовать снова', onPress: () => updateRainbowData(showLoading) },
-            { text: 'Отмена', style: 'cancel' }
+            { text: 'OK', style: 'cancel' }
           ]
         );
       }
     } finally {
       updateInProgressRef.current = false;
-      if (showLoading && isMountedRef.current) {
+      if (showLoading) {
         safeSetState(setLoading, false);
       }
     }
   };
 
   /**
-   * Проверка условий для отправки уведомления (УЛУЧШЕННАЯ)
+   * 🛡️ БЕЗОПАСНАЯ ПРОВЕРКА УВЕДОМЛЕНИЙ
    */
   const checkNotificationConditions = async (rainbowResult) => {
-    const prob = rainbowResult.probability;
+    // ✅ Защита от неопределённых значений
+    if (!rainbowResult || typeof rainbowResult.probability !== 'number') {
+      Logger.warn('APP', 'Некорректные данные для уведомлений', rainbowResult);
+      return;
+    }
     
-    if (prob > 80) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
+    const prob = Math.round(rainbowResult.probability);
+    const direction = Math.round(rainbowResult.direction?.center || 0);
+    
+    try {
+      let notificationContent = null;
+      
+      if (prob > 80) {
+        notificationContent = {
           title: '🌈 СУПЕР условия для радуги!',
-          body: `Вероятность ${prob}%! Был дождь + сейчас солнце! Направление: ${Math.round(rainbowResult.direction?.center || 0)}°`,
-          data: { rainbowData: rainbowResult },
-        },
-        trigger: { seconds: 1 },
-      });
-    } else if (prob > 60) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
+          body: `Вероятность ${prob}%! Был дождь + сейчас солнце! Направление: ${direction}°`,
+        };
+      } else if (prob > 60) {
+        notificationContent = {
           title: '🌈 Отличные условия для радуги!',
-          body: `Вероятность ${prob}%. Смотрите в направлении ${Math.round(rainbowResult.direction?.center || 0)}°`,
-          data: { rainbowData: rainbowResult },
-        },
-        trigger: { seconds: 1 },
-      });
-    } else if (prob > 40) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
+          body: `Вероятность ${prob}%. Смотрите в направлении ${direction}°`,
+        };
+      } else if (prob > 40) {
+        notificationContent = {
           title: '🌈 Возможна радуга',
           body: `Вероятность ${prob}%. Следите за небом!`,
-          data: { rainbowData: rainbowResult },
-        },
-        trigger: { seconds: 1 },
-      });
+        };
+      }
+      
+      // ✅ Только если есть что уведомлять И компонент смонтирован
+      if (notificationContent && isMountedRef.current) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            ...notificationContent,
+            data: { probability: prob, direction: direction },
+          },
+          trigger: { seconds: 1 },
+        });
+        
+        Logger.success('APP', `Уведомление запланировано для вероятности ${prob}%`);
+      }
+    } catch (notificationError) {
+      // ✅ Не ломаем приложение из-за уведомлений
+      Logger.warn('APP', 'Не удалось запланировать уведомление', notificationError);
     }
   };
 
