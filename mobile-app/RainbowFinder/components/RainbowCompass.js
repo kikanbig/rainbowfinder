@@ -15,9 +15,8 @@ export const RainbowCompass = ({
 }) => {
   
   const [magnetometerData, setMagnetometerData] = useState({ x: 0, y: 0, z: 0 });
-  const [deviceHeading, setDeviceHeading] = useState(0);
+  const [deviceHeading, setDeviceHeading] = useState(0); // Текущее направление устройства
   const [isCompassAvailable, setIsCompassAvailable] = useState(false);
-  const [headingHistory, setHeadingHistory] = useState([]); // Для сглаживания
   const subscription = useRef(null);
   
   // Инициализация датчиков
@@ -37,8 +36,8 @@ export const RainbowCompass = ({
       if (isAvailable) {
         setIsCompassAvailable(true);
         
-        // 🎯 СТАБИЛЬНОСТЬ: Реже обновления = меньше дерганий
-        Magnetometer.setUpdateInterval(300); // 3 раза в секунду
+        // Устанавливаем частоту обновления
+        Magnetometer.setUpdateInterval(100); // 10 раз в секунду
         
         // Подписываемся на данные магнитометра
         subscription.current = Magnetometer.addListener(handleMagnetometerUpdate);
@@ -54,20 +53,13 @@ export const RainbowCompass = ({
     }
   };
   
-  // 🎯 СТАБИЛЬНАЯ ОБРАБОТКА МАГНИТОМЕТРА
+  // Обработка данных магнитометра
   const handleMagnetometerUpdate = (data) => {
     setMagnetometerData(data);
     
-    // Вычисляем сырое направление
-    const rawHeading = calculateHeading(data);
-    
-    // 📈 СГЛАЖИВАНИЕ: Скользящее среднее из 3 значений
-    setHeadingHistory(prev => {
-      const newHistory = [...prev, rawHeading].slice(-3); // Последние 3 значения
-      const smoothedHeading = newHistory.reduce((sum, h) => sum + h, 0) / newHistory.length;
-      setDeviceHeading(Math.round(smoothedHeading));
-      return newHistory;
-    });
+    // Вычисляем направление устройства (азимут)
+    const heading = calculateHeading(data);
+    setDeviceHeading(heading);
   };
   
   // Вычисление направления устройства в градусах
@@ -127,18 +119,23 @@ export const RainbowCompass = ({
     isRainbowDirection = false;
   }
   
-  // 🔄 НОВАЯ ЛОГИКА: Убираем корректировки для чистого тестирования
-  let arrowRotation;
+  // 🎯 ПРАВИЛЬНАЯ ЛОГИКА КОМПАСА
+  let beeRotation;
+  let sunRotationAngle;
+  
   if (isCompassAvailable) {
-    // Компас активен: пчелка поворачивается относительно магнитного севера
-    arrowRotation = targetDirection - deviceHeading;
+    // Компас активен: пчелка и солнце компенсируют поворот телефона
+    beeRotation = targetDirection - deviceHeading;
+    sunRotationAngle = (sunPosition?.azimuth || 0) - deviceHeading;
   } else {
-    // Статичный режим: пчелка просто указывает направление
-    arrowRotation = targetDirection;
+    // Статичный режим: просто показываем направления
+    beeRotation = targetDirection;
+    sunRotationAngle = sunPosition?.azimuth || 0;
   }
   
-  // Нормализуем угол
-  arrowRotation = ((arrowRotation % 360) + 360) % 360;
+  // Нормализуем углы
+  beeRotation = ((beeRotation % 360) + 360) % 360;
+  sunRotationAngle = ((sunRotationAngle % 360) + 360) % 360;
   
   // 🔍 СУПЕР-ДЕТАЛЬНАЯ ОТЛАДКА
   console.log('=== 🐝💞 КОМПАС ДЛЯ КАТИ ===');
@@ -146,13 +143,9 @@ export const RainbowCompass = ({
   console.log('🐝 Пчелка направление:', targetDirection);
   console.log('📐 Разница (должна быть ~180°):', Math.abs(targetDirection - (sunPosition?.azimuth || 0)));
   console.log('🧭 Магнитометр (поворот телефона):', deviceHeading);
-  console.log('🔄 CSS поворот пчелки:', arrowRotation, '°');
-  
-  const sunRotation = isCompassAvailable 
-    ? (sunPosition?.azimuth || 0) - deviceHeading
-    : (sunPosition?.azimuth || 0);
-  console.log('☀️ CSS поворот солнца:', sunRotation, '°');
-  console.log('🎯 CSS разница (должна быть ~180°):', Math.abs(arrowRotation - sunRotation));
+  console.log('🔄 CSS поворот пчелки:', beeRotation, '°');
+  console.log('☀️ CSS поворот солнца:', sunRotationAngle, '°');
+  console.log('🎯 CSS разница (должна быть ~180°):', Math.abs(beeRotation - sunRotationAngle));
   
   // 🧪 ТЕСТИРОВАНИЕ: Если солнце на востоке (90°), пчелка должна быть на западе (270°)
   if (sunPosition?.azimuth) {
@@ -206,7 +199,7 @@ export const RainbowCompass = ({
     : '☀️ Примерное направление (от солнца)';
   
   const compassStatusText = isCompassAvailable 
-    ? '🐝 Пчелка реагирует на солнце | 🧭 Красная N всегда указывает на север' 
+    ? '🐝 Пчелка показывает напротив реального солнца!' 
     : '📍 Пчелка напротив солнца (примерно)';
   
       return (
@@ -264,7 +257,7 @@ export const RainbowCompass = ({
             style={[
               styles.mainBeeIndicator,
               {
-                transform: [{ rotate: `${arrowRotation}deg` }]
+                transform: [{ rotate: `${beeRotation}deg` }]
               }
             ]}
           >
@@ -274,31 +267,26 @@ export const RainbowCompass = ({
             </View>
           </View>
           
-          {/* Индикатор солнца (новая логика без корректировок) */}
+          {/* Индикатор солнца (используем новую логику) */}
           <View
             style={[
               styles.sunIndicator,
               {
-                transform: [{ 
-                  rotate: `${isCompassAvailable 
-                    ? (sunPosition?.azimuth || 0) - deviceHeading
-                    : (sunPosition?.azimuth || 0)
-                  }deg` 
-                }]
+                transform: [{ rotate: `${sunRotationAngle}deg` }]
               }
             ]}
           >
             <Ionicons name="sunny" size={16} color="#f59e0b" />
           </View>
           
-          {/* 🧭 УЛУЧШЕННЫЙ ИНДИКАТОР СЕВЕРА - всегда указывает на истинный север */}
+          {/* Индикатор севера (красная точка указывает истинный север) */}
           {isCompassAvailable && (
             <View
               style={[
                 styles.northIndicator,
                 {
                   transform: [{ 
-                    rotate: `${-deviceHeading}deg` // Поворачиваем ПРОТИВОПОЛОЖНО устройству
+                    rotate: `${-deviceHeading}deg` 
                   }]
                 }
               ]}
@@ -329,19 +317,13 @@ export const RainbowCompass = ({
               <View style={styles.directionRow}>
                 <Text style={styles.directionLabel}>🔄 Поворот пчелки:</Text>
                 <Text style={[styles.directionValue, { color: '#9333ea' }]}>
-                  {Math.round(arrowRotation)}°
+                  {Math.round(beeRotation)}°
                 </Text>
               </View>
               <View style={styles.directionRow}>
                 <Text style={styles.directionLabel}>🧭 Магнитометр:</Text>
                 <Text style={[styles.directionValue, { color: '#059669' }]}>
                   {Math.round(deviceHeading)}°
-                </Text>
-              </View>
-              <View style={styles.directionRow}>
-                <Text style={styles.directionLabel}>🧭 Поворот севера:</Text>
-                <Text style={[styles.directionValue, { color: '#dc2626' }]}>
-                  {Math.round(-deviceHeading)}° (противоположно)
                 </Text>
               </View>
               <View style={styles.directionRow}>
