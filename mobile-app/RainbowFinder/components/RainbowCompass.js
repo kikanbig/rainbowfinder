@@ -132,17 +132,28 @@ export const RainbowCompass = ({
   // Нормализуем угол
   arrowRotation = ((arrowRotation % 360) + 360) % 360;
   
-  // 🔍 МАКСИМАЛЬНАЯ ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
-  console.log('=== ОТЛАДКА КОМПАСА ===');
+  // 🔍 СУПЕР-ДЕТАЛЬНАЯ ОТЛАДКА
+  console.log('=== 🐝💞 КОМПАС ДЛЯ КАТИ ===');
   console.log('🌞 Солнце азимут:', sunPosition?.azimuth);
   console.log('🐝 Пчелка направление:', targetDirection);
-  console.log('📐 Математическая разница:', Math.abs(targetDirection - (sunPosition?.azimuth || 0)));
-  console.log('🧭 Магнитометр:', deviceHeading);
-  console.log('🔄 Поворот пчелки:', arrowRotation);
-  console.log('☀️ Поворот солнца:', isCompassAvailable 
+  console.log('📐 Разница (должна быть ~180°):', Math.abs(targetDirection - (sunPosition?.azimuth || 0)));
+  console.log('🧭 Магнитометр (поворот телефона):', deviceHeading);
+  console.log('🔄 CSS поворот пчелки:', arrowRotation, '°');
+  
+  const sunRotation = isCompassAvailable 
     ? (sunPosition?.azimuth || 0) - deviceHeading
-    : (sunPosition?.azimuth || 0));
-  console.log('========================');
+    : (sunPosition?.azimuth || 0);
+  console.log('☀️ CSS поворот солнца:', sunRotation, '°');
+  console.log('🎯 CSS разница (должна быть ~180°):', Math.abs(arrowRotation - sunRotation));
+  
+  // 🧪 ТЕСТИРОВАНИЕ: Если солнце на востоке (90°), пчелка должна быть на западе (270°)
+  if (sunPosition?.azimuth) {
+    const expectedBee = (sunPosition.azimuth + 180) % 360;
+    const actualBee = targetDirection;
+    console.log('🧪 ТЕСТ: Солнце', sunPosition.azimuth, '° → Пчелка должна быть', expectedBee, '°, фактически', actualBee, '°');
+    console.log('✅ Математика правильна:', expectedBee === actualBee ? 'ДА' : 'НЕТ');
+  }
+  console.log('==============================');
 
   // Функция для получения названия направления
   const getDirectionName = (degrees) => {
@@ -487,9 +498,9 @@ const styles = StyleSheet.create({
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    top: 20, // Позиция в компасе (СЕВЕР)
-    left: 125, // Центрируем горизонтально
-    transformOrigin: '25px 115px', // Поворот вокруг центра компаса (135px от верха)
+    top: 10, // СЕВЕР компаса (центр - 25px = 140px - 25px = 115px)
+    left: 115, // ЦЕНТР горизонтально (центр - 25px = 140px - 25px = 115px)
+    transformOrigin: '25px 130px', // Поворот вокруг ЦЕНТРА компаса (140px от верха)
   },
   
   beeContainer: {
@@ -531,9 +542,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    top: 250, // Позиция в компасе (ЮГ) - напротив пчелки
-    left: 137, // Центрируем горизонтально
-    transformOrigin: '13px -115px', // Поворот вокруг ТОГО ЖЕ центра что и пчелка
+    top: 254, // ЮГ компаса (центр + радиус - 13px = 140px + 140px - 13px = 267px, но ограничим)
+    left: 127, // ЦЕНТР горизонтально (центр - 13px = 140px - 13px = 127px)
+    transformOrigin: '13px -114px', // Поворот вокруг ЦЕНТРА компаса (140px - 254px = -114px)
     shadowColor: '#f59e0b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
@@ -545,15 +556,15 @@ const styles = StyleSheet.create({
   
   northIndicator: {
     position: 'absolute',
-    top: 10, // Позиция СЕВЕРА в компасе
-    left: 138, // Центрируем горизонтально 
+    top: 8, // СЕВЕР компаса (центр - радиус - 12px = 140px - 140px + 8px)
+    left: 128, // ЦЕНТР горизонтально (центр - 12px = 140px - 12px = 128px)
     backgroundColor: '#ef4444',
     width: 24,
     height: 24,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    transformOrigin: '12px 125px', // Поворот вокруг центра компаса
+    transformOrigin: '12px 132px', // Поворот вокруг ЦЕНТРА компаса (140px - 8px = 132px)
     shadowColor: '#ef4444',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
