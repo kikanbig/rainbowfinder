@@ -17,6 +17,7 @@ export const RainbowCompass = ({
   const [magnetometerData, setMagnetometerData] = useState({ x: 0, y: 0, z: 0 });
   const [deviceHeading, setDeviceHeading] = useState(0); // Текущее направление устройства
   const [isCompassAvailable, setIsCompassAvailable] = useState(false);
+  const [calibrationOffset, setCalibrationOffset] = useState(0); // 🎯 КАЛИБРОВКА
   const subscription = useRef(null);
   
   // Инициализация датчиков
@@ -62,17 +63,27 @@ export const RainbowCompass = ({
     setDeviceHeading(heading);
   };
   
-  // Вычисление направления устройства в градусах
+  // 🎯 ИСПРАВЛЕННАЯ ФОРМУЛА КОМПАСА
   const calculateHeading = (data) => {
-    if (Platform.OS === 'ios') {
-      // На iOS используем стандартную формулу
-      let heading = Math.atan2(data.y, data.x) * (180 / Math.PI);
-      return heading >= 0 ? heading : heading + 360;
-    } else {
-      // На Android может потребоваться другая формула
-      let heading = Math.atan2(-data.y, data.x) * (180 / Math.PI);
-      return heading >= 0 ? heading : heading + 360;
-    }
+    // Универсальная формула для всех платформ
+    let heading = Math.atan2(data.y, data.x) * (180 / Math.PI);
+    
+    // Нормализуем угол
+    heading = heading >= 0 ? heading : heading + 360;
+    
+    // 🔧 КАЛИБРОВКА: Компенсируем магнитное склонение
+    // Для России примерно +7° (восточное склонение)
+    const magneticDeclination = 7;
+    heading = (heading + magneticDeclination) % 360;
+    
+    return heading;
+  };
+  
+  // 🎯 ФУНКЦИЯ КАЛИБРОВКИ КОМПАСА
+  const calibrateCompass = () => {
+    // Устанавливаем текущее направление как "север"
+    setCalibrationOffset(deviceHeading);
+    console.log('🎯 Компас откалиброван! Север установлен на:', deviceHeading, '°');
   };
   
   // Отписка от датчиков
@@ -119,23 +130,28 @@ export const RainbowCompass = ({
     isRainbowDirection = false;
   }
   
-  // 🎯 ПРАВИЛЬНАЯ ЛОГИКА КОМПАСА
+  // 🎯 ПРАВИЛЬНАЯ ЛОГИКА КОМПАСА С КАЛИБРОВКОЙ
   let beeRotation;
   let sunRotationAngle;
+  let northRotation;
   
   if (isCompassAvailable) {
-    // Компас активен: пчелка и солнце компенсируют поворот телефона
-    beeRotation = targetDirection - deviceHeading;
-    sunRotationAngle = (sunPosition?.azimuth || 0) - deviceHeading;
+    // Компас активен: все элементы компенсируют поворот телефона
+    const calibratedHeading = (deviceHeading - calibrationOffset + 360) % 360;
+    beeRotation = targetDirection - calibratedHeading;
+    sunRotationAngle = (sunPosition?.azimuth || 0) - calibratedHeading;
+    northRotation = -calibratedHeading; // Север всегда указывает на истинный север
   } else {
     // Статичный режим: просто показываем направления
     beeRotation = targetDirection;
     sunRotationAngle = sunPosition?.azimuth || 0;
+    northRotation = 0;
   }
   
   // Нормализуем углы
   beeRotation = ((beeRotation % 360) + 360) % 360;
   sunRotationAngle = ((sunRotationAngle % 360) + 360) % 360;
+  northRotation = ((northRotation % 360) + 360) % 360;
   
   // 🔍 СУПЕР-ДЕТАЛЬНАЯ ОТЛАДКА
   console.log('=== 🐝💞 КОМПАС ДЛЯ КАТИ ===');
@@ -286,7 +302,7 @@ export const RainbowCompass = ({
                 styles.northIndicator,
                 {
                   transform: [{ 
-                    rotate: `${-deviceHeading}deg` 
+                    rotate: `${northRotation}deg` 
                   }]
                 }
               ]}
@@ -342,12 +358,26 @@ export const RainbowCompass = ({
           )}
           
           {isCompassAvailable && (
-            <View style={styles.directionRow}>
-              <Text style={styles.directionLabel}>Ваш азимут:</Text>
-              <Text style={styles.directionValue}>
-                {Math.round(deviceHeading)}° ({getDirectionName(deviceHeading)})
-              </Text>
-            </View>
+            <>
+              <View style={styles.directionRow}>
+                <Text style={styles.directionLabel}>Ваш азимут:</Text>
+                <Text style={styles.directionValue}>
+                  {Math.round(deviceHeading)}° ({getDirectionName(deviceHeading)})
+                </Text>
+              </View>
+              <View style={styles.directionRow}>
+                <Text style={styles.directionLabel}>🎯 Калибровка:</Text>
+                <Text style={styles.directionValue}>
+                  {calibrationOffset > 0 ? `${Math.round(calibrationOffset)}°` : 'Не откалиброван'}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.calibrateButton} 
+                onPress={calibrateCompass}
+              >
+                <Text style={styles.calibrateButtonText}>🎯 Откалибровать компас</Text>
+              </TouchableOpacity>
+            </>
           )}
           
           <View style={styles.directionRow}>
@@ -540,7 +570,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     top: 227, // ЮГ компаса - симметрично пчелке (240-13=227)
     left: 152, // Симметрично пчелке (165-13=152)
-    transformOrigin: '-12px -87px', // Поворот вокруг ЦЕНТРА компаса (140-152=-12, 140-227=-87)
+    transformOrigin: '13px 13px', // 🎯 ИСПРАВЛЕНО: Поворот вокруг ЦЕНТРА солнца
     shadowColor: '#f59e0b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
@@ -633,6 +663,20 @@ const styles = StyleSheet.create({
     color: '#92400e',
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  
+  calibrateButton: {
+    marginTop: 10,
+    padding: 12,
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  
+  calibrateButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   
   instructions: {
