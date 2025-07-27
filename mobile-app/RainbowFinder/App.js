@@ -77,17 +77,11 @@ export default function App() {
   }, [location, permissionsGranted]);
 
   /**
-   * 🛡️ МАКСИМАЛЬНО БЕЗОПАСНОЕ ОБНОВЛЕНИЕ СОСТОЯНИЯ
+   * Безопасное обновление состояния (только если компонент смонтирован)
    */
   const safeSetState = useCallback((setter, value) => {
-    // ✅ Тройная защита от краша!
-    if (isMountedRef.current && typeof setter === 'function') {
-      try {
-        setter(value);
-      } catch (setterError) {
-        Logger.error('APP', 'Ошибка обновления состояния', { setterError, value });
-        // Не ломаем приложение из-за setState
-      }
+    if (isMountedRef.current) {
+      setter(value);
     }
   }, []);
 
@@ -249,8 +243,8 @@ export default function App() {
     }
   };
 
-    /**
-   * ✅ ПРОСТОЕ РАБОЧЕЕ ОБНОВЛЕНИЕ ДАННЫХ (восстановлено из рабочей версии)
+  /**
+   * Обновление данных о радуге (ИСПРАВЛЕННАЯ ВЕРСИЯ)
    */
   const updateRainbowData = async (showLoading = true) => {
     if (!isMountedRef.current || updateInProgressRef.current) {
@@ -289,7 +283,8 @@ export default function App() {
             'Ошибка погодных данных', 
             `Не удалось получить данные о погоде:\n${weatherError.message}\n\nПроверьте интернет-соединение.`,
             [
-              { text: 'OK', style: 'cancel' }
+              { text: 'Попробовать снова', onPress: () => updateRainbowData(showLoading) },
+              { text: 'Отмена', style: 'cancel' }
             ]
           );
         }
@@ -368,7 +363,11 @@ export default function App() {
       if (isMountedRef.current) {
         Alert.alert(
           'Ошибка обновления', 
-          `Произошла ошибка при обновлении данных: ${error.message || 'Неизвестная ошибка'}`
+          `Произошла ошибка при обновлении данных: ${error.message || 'Неизвестная ошибка'}`,
+          [
+            { text: 'Попробовать снова', onPress: () => updateRainbowData(showLoading) },
+            { text: 'Отмена', style: 'cancel' }
+          ]
         );
       }
     } finally {
@@ -380,53 +379,38 @@ export default function App() {
   };
 
   /**
-   * 🛡️ БЕЗОПАСНАЯ ПРОВЕРКА УВЕДОМЛЕНИЙ
+   * Проверка условий для отправки уведомления (УЛУЧШЕННАЯ)
    */
   const checkNotificationConditions = async (rainbowResult) => {
-    // ✅ Защита от неопределённых значений
-    if (!rainbowResult || typeof rainbowResult.probability !== 'number') {
-      Logger.warn('APP', 'Некорректные данные для уведомлений', rainbowResult);
-      return;
-    }
+    const prob = rainbowResult.probability;
     
-    const prob = Math.round(rainbowResult.probability);
-    const direction = Math.round(rainbowResult.direction?.center || 0);
-    
-    try {
-      let notificationContent = null;
-      
-      if (prob > 80) {
-        notificationContent = {
+    if (prob > 80) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
           title: '🌈 СУПЕР условия для радуги!',
-          body: `Вероятность ${prob}%! Был дождь + сейчас солнце! Направление: ${direction}°`,
-        };
-      } else if (prob > 60) {
-        notificationContent = {
+          body: `Вероятность ${prob}%! Был дождь + сейчас солнце! Направление: ${Math.round(rainbowResult.direction?.center || 0)}°`,
+          data: { rainbowData: rainbowResult },
+        },
+        trigger: { seconds: 1 },
+      });
+    } else if (prob > 60) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
           title: '🌈 Отличные условия для радуги!',
-          body: `Вероятность ${prob}%. Смотрите в направлении ${direction}°`,
-        };
-      } else if (prob > 40) {
-        notificationContent = {
+          body: `Вероятность ${prob}%. Смотрите в направлении ${Math.round(rainbowResult.direction?.center || 0)}°`,
+          data: { rainbowData: rainbowResult },
+        },
+        trigger: { seconds: 1 },
+      });
+    } else if (prob > 40) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
           title: '🌈 Возможна радуга',
           body: `Вероятность ${prob}%. Следите за небом!`,
-        };
-      }
-      
-      // ✅ Только если есть что уведомлять И компонент смонтирован
-      if (notificationContent && isMountedRef.current) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            ...notificationContent,
-            data: { probability: prob, direction: direction },
-          },
-          trigger: { seconds: 1 },
-        });
-        
-        Logger.success('APP', `Уведомление запланировано для вероятности ${prob}%`);
-      }
-    } catch (notificationError) {
-      // ✅ Не ломаем приложение из-за уведомлений
-      Logger.warn('APP', 'Не удалось запланировать уведомление', notificationError);
+          data: { rainbowData: rainbowResult },
+        },
+        trigger: { seconds: 1 },
+      });
     }
   };
 

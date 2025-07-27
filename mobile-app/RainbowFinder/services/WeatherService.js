@@ -230,9 +230,9 @@ export class WeatherService {
       const data = await response.json();
       
       return {
-        current: this.transformWeatherData(data.current),
-        hourly: data.hourly?.slice(0, 24).map(hour => this.transformWeatherData(hour)) || [],
-        daily: data.daily?.slice(0, 7).map(day => this.transformDailyWeather(day)) || [],
+        current: WeatherService.transformWeatherData(data.current),
+        hourly: data.hourly?.slice(0, 24).map(hour => WeatherService.transformWeatherData(hour)) || [],
+                  daily: data.daily?.slice(0, 7).map(day => WeatherService.transformDailyWeather(day)) || [],
         alerts: data.alerts || []
       };
     } catch (error) {
@@ -261,7 +261,7 @@ export class WeatherService {
       
       return {
         current: null, // Получаем отдельно
-        hourly: data.list.slice(0, 8).map(item => this.transformWeatherData(item)),
+                  hourly: data.list.slice(0, 8).map(item => WeatherService.transformWeatherData(item)),
         daily: dailyData,
         alerts: []
       };
@@ -427,7 +427,7 @@ export class WeatherService {
         dailyMap.set(dateKey, []);
       }
       
-      dailyMap.get(dateKey).push(this.transformWeatherData(item));
+              dailyMap.get(dateKey).push(WeatherService.transformWeatherData(item));
     });
     
     // Преобразуем в дневные данные
