@@ -252,23 +252,67 @@ export default function App() {
   /**
    * 🛡️ СУПЕР-ЗАЩИЩЁННОЕ ОБНОВЛЕНИЕ ДАННЫХ О РАДУГЕ
    */
-  const updateRainbowData = async (showLoading = true) => {
+  const updateRainbowData = async (showLoading = true, retryAttempt = 0) => {
+    // 🛡️ Защита от бесконечной рекурсии
+    if (retryAttempt > 2) {
+      Logger.error('APP', 'Слишком много попыток получения местоположения');
+      Alert.alert('Ошибка', 'Не удалось получить местоположение после нескольких попыток.', [
+        { text: 'OK', style: 'cancel' }
+      ]);
+      return;
+    }
     // ✅ Проверяем параметры
     if (typeof showLoading !== 'boolean') {
       Logger.warn('APP', 'Неправильный параметр showLoading', showLoading);
       showLoading = true;
     }
     
-    if (!isMountedRef.current || updateInProgressRef.current) {
-      Logger.info('APP', 'Обновление пропущено: компонент размонтирован или обновление уже идет');
+    if (!isMountedRef.current) {
+      Logger.info('APP', 'Обновление пропущено: компонент размонтирован');
+      return;
+    }
+    
+    if (updateInProgressRef.current) {
+      Logger.info('APP', 'Обновление уже выполняется');
+      // Показываем пользователю что обновление уже идет
+      Alert.alert('Подождите', 'Обновление данных уже выполняется...', [
+        { text: 'OK', style: 'cancel' }
+      ]);
       return;
     }
 
-    if (!location || !location.coords) {
+    // 🛡️ МАКСИМАЛЬНАЯ ЗАЩИТА ОТ КРАША ГЕОЛОКАЦИИ
+    if (!location || !location.coords || 
+        typeof location.coords !== 'object' ||
+        typeof location.coords.latitude !== 'number' ||
+        typeof location.coords.longitude !== 'number') {
       Logger.error('APP', 'Некорректное местоположение', location);
-      Alert.alert('Ошибка', 'Местоположение не определено. Проверьте разрешения на геолокацию.', [
-        { text: 'OK', style: 'cancel' }
-      ]);
+      
+      // 🚀 ПОПЫТКА ПОЛУЧИТЬ МЕСТОПОЛОЖЕНИЕ ЗАНОВО!
+      try {
+        Logger.info('APP', 'Пытаемся получить местоположение заново...');
+        const newLocation = await getCurrentLocation();
+        
+        if (newLocation && newLocation.coords && 
+            typeof newLocation.coords.latitude === 'number' && 
+            typeof newLocation.coords.longitude === 'number') {
+          Logger.success('APP', 'Местоположение получено заново!');
+          setLocation(newLocation);
+                     // Рекурсивно вызываем updateRainbowData с новым местоположением
+           return updateRainbowData(showLoading, retryAttempt + 1);
+        }
+      } catch (locationError) {
+        Logger.error('APP', 'Не удалось получить местоположение', locationError);
+      }
+      
+      // Если не удалось получить местоположение - показываем Alert
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          Alert.alert('Ошибка', 'Не удалось определить местоположение. Проверьте разрешения на геолокацию и GPS.', [
+            { text: 'OK', style: 'cancel' }
+          ]);
+        }
+      }, 100);
       return;
     }
 
