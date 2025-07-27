@@ -17,7 +17,6 @@ export const RainbowCompass = ({
   const [magnetometerData, setMagnetometerData] = useState({ x: 0, y: 0, z: 0 });
   const [deviceHeading, setDeviceHeading] = useState(0); // Текущее направление устройства
   const [isCompassAvailable, setIsCompassAvailable] = useState(false);
-  const [calibrationOffset, setCalibrationOffset] = useState(0); // 🎯 КАЛИБРОВКА
   const subscription = useRef(null);
   
   // Инициализация датчиков
@@ -56,50 +55,24 @@ export const RainbowCompass = ({
   
   // Обработка данных магнитометра
   const handleMagnetometerUpdate = (data) => {
-    try {
-      setMagnetometerData(data);
-      
-      // Вычисляем направление устройства (азимут)
-      const heading = calculateHeading(data);
-      setDeviceHeading(heading);
-    } catch (error) {
-      console.error('❌ Ошибка обработки магнитометра:', error);
-      // Не падаем, просто логируем ошибку
-    }
+    setMagnetometerData(data);
+    
+    // Вычисляем направление устройства (азимут)
+    const heading = calculateHeading(data);
+    setDeviceHeading(heading);
   };
   
-  // 🎯 ИСПРАВЛЕННАЯ ФОРМУЛА КОМПАСА
+  // Вычисление направления устройства в градусах
   const calculateHeading = (data) => {
-    try {
-      // Проверяем валидность данных
-      if (!data || typeof data.x !== 'number' || typeof data.y !== 'number') {
-        console.warn('⚠️ Некорректные данные магнитометра:', data);
-        return 0;
-      }
-      
-      // Универсальная формула для всех платформ
+    if (Platform.OS === 'ios') {
+      // На iOS используем стандартную формулу
       let heading = Math.atan2(data.y, data.x) * (180 / Math.PI);
-      
-      // Нормализуем угол
-      heading = heading >= 0 ? heading : heading + 360;
-      
-      // 🔧 КАЛИБРОВКА: Компенсируем магнитное склонение
-      // Для России примерно +7° (восточное склонение)
-      const magneticDeclination = 7;
-      heading = (heading + magneticDeclination) % 360;
-      
-      return heading;
-    } catch (error) {
-      console.error('❌ Ошибка расчета направления:', error);
-      return 0; // Возвращаем 0 вместо падения
+      return heading >= 0 ? heading : heading + 360;
+    } else {
+      // На Android может потребоваться другая формула
+      let heading = Math.atan2(-data.y, data.x) * (180 / Math.PI);
+      return heading >= 0 ? heading : heading + 360;
     }
-  };
-  
-  // 🎯 ФУНКЦИЯ КАЛИБРОВКИ КОМПАСА
-  const calibrateCompass = () => {
-    // Устанавливаем текущее направление как "север"
-    setCalibrationOffset(deviceHeading);
-    console.log('🎯 Компас откалиброван! Север установлен на:', deviceHeading, '°');
   };
   
   // Отписка от датчиков
@@ -125,58 +98,39 @@ export const RainbowCompass = ({
   // 🐝 СУПЕР-ТОЧНАЯ ЛОГИКА: ПЧЕЛКА СТРОГО НАПРОТИВ СОЛНЦА!
   let targetDirection = 0;
   let isRainbowDirection = false;
-  let beeRotation = 0;
-  let sunRotationAngle = 0;
-  let northRotation = 0;
   
-  try {
-    if (sunPosition && sunPosition.azimuth !== undefined) {
-      // ФИЗИЧЕСКИЙ ЗАКОН: Радуга всегда появляется в противосолнечной точке
-      // Если солнце на востоке (90°), радуга на западе (270°)
-      // Если солнце на юге (180°), радуга на севере (0°/360°)
-      
-      const sunAzimuth = sunPosition.azimuth;
-      targetDirection = (sunAzimuth + 180) % 360;
-      
-      isRainbowDirection = true;
-      
-      // 🔍 ОТЛАДКА: Логируем для проверки
-      console.log('🌞 Солнце азимут:', sunAzimuth);
-      console.log('🐝 Пчелка направление:', targetDirection);
-      console.log('📐 Должна быть разница 180°:', Math.abs(targetDirection - sunAzimuth));
-    } else {
-      // Резерв: если нет данных о солнце, используем расчетное направление
-      targetDirection = rainbowDirection?.center || 0;
-      isRainbowDirection = false;
-    }
+  if (sunPosition && sunPosition.azimuth !== undefined) {
+    // ФИЗИЧЕСКИЙ ЗАКОН: Радуга всегда появляется в противосолнечной точке
+    // Если солнце на востоке (90°), радуга на западе (270°)
+    // Если солнце на юге (180°), радуга на севере (0°/360°)
     
-    // 🎯 ПРАВИЛЬНАЯ ЛОГИКА КОМПАСА С КАЛИБРОВКОЙ
-    if (isCompassAvailable) {
-      // Компас активен: все элементы компенсируют поворот телефона
-      const calibratedHeading = (deviceHeading - calibrationOffset + 360) % 360;
-      beeRotation = targetDirection - calibratedHeading;
-      sunRotationAngle = (sunPosition?.azimuth || 0) - calibratedHeading;
-      northRotation = -calibratedHeading; // Север всегда указывает на истинный север
-    } else {
-      // Статичный режим: просто показываем направления
-      beeRotation = targetDirection;
-      sunRotationAngle = sunPosition?.azimuth || 0;
-      northRotation = 0;
-    }
+    const sunAzimuth = sunPosition.azimuth;
+    targetDirection = (sunAzimuth + 180) % 360;
     
-    // Нормализуем углы
-    beeRotation = ((beeRotation % 360) + 360) % 360;
-    sunRotationAngle = ((sunRotationAngle % 360) + 360) % 360;
-    northRotation = ((northRotation % 360) + 360) % 360;
-  } catch (error) {
-    console.error('❌ Ошибка расчета компаса:', error);
-    // Используем безопасные значения по умолчанию
-    targetDirection = 0;
-    beeRotation = 0;
-    sunRotationAngle = 0;
-    northRotation = 0;
+    isRainbowDirection = true;
+    
+    // 🔍 ОТЛАДКА: Логируем для проверки
+    console.log('🌞 Солнце азимут:', sunAzimuth);
+    console.log('🐝 Пчелка направление:', targetDirection);
+    console.log('📐 Должна быть разница 180°:', Math.abs(targetDirection - sunAzimuth));
+  } else {
+    // Резерв: если нет данных о солнце, используем расчетное направление
+    targetDirection = rainbowDirection?.center || 0;
     isRainbowDirection = false;
   }
+  
+  // 🔄 НОВАЯ ЛОГИКА: Убираем корректировки для чистого тестирования
+  let arrowRotation;
+  if (isCompassAvailable) {
+    // Компас активен: пчелка поворачивается относительно магнитного севера
+    arrowRotation = targetDirection - deviceHeading;
+  } else {
+    // Статичный режим: пчелка просто указывает направление
+    arrowRotation = targetDirection;
+  }
+  
+  // Нормализуем угол
+  arrowRotation = ((arrowRotation % 360) + 360) % 360;
   
   // 🔍 СУПЕР-ДЕТАЛЬНАЯ ОТЛАДКА
   console.log('=== 🐝💞 КОМПАС ДЛЯ КАТИ ===');
@@ -184,9 +138,13 @@ export const RainbowCompass = ({
   console.log('🐝 Пчелка направление:', targetDirection);
   console.log('📐 Разница (должна быть ~180°):', Math.abs(targetDirection - (sunPosition?.azimuth || 0)));
   console.log('🧭 Магнитометр (поворот телефона):', deviceHeading);
-  console.log('🔄 CSS поворот пчелки:', beeRotation, '°');
-  console.log('☀️ CSS поворот солнца:', sunRotationAngle, '°');
-  console.log('🎯 CSS разница (должна быть ~180°):', Math.abs(beeRotation - sunRotationAngle));
+  console.log('🔄 CSS поворот пчелки:', arrowRotation, '°');
+  
+  const sunRotation = isCompassAvailable 
+    ? (sunPosition?.azimuth || 0) - deviceHeading
+    : (sunPosition?.azimuth || 0);
+  console.log('☀️ CSS поворот солнца:', sunRotation, '°');
+  console.log('🎯 CSS разница (должна быть ~180°):', Math.abs(arrowRotation - sunRotation));
   
   // 🧪 ТЕСТИРОВАНИЕ: Если солнце на востоке (90°), пчелка должна быть на западе (270°)
   if (sunPosition?.azimuth) {
@@ -298,7 +256,7 @@ export const RainbowCompass = ({
             style={[
               styles.mainBeeIndicator,
               {
-                transform: [{ rotate: `${beeRotation}deg` }]
+                transform: [{ rotate: `${arrowRotation}deg` }]
               }
             ]}
           >
@@ -308,12 +266,17 @@ export const RainbowCompass = ({
             </View>
           </View>
           
-          {/* Индикатор солнца (используем новую логику) */}
+          {/* Индикатор солнца (новая логика без корректировок) */}
           <View
             style={[
               styles.sunIndicator,
               {
-                transform: [{ rotate: `${sunRotationAngle}deg` }]
+                transform: [{ 
+                  rotate: `${isCompassAvailable 
+                    ? (sunPosition?.azimuth || 0) - deviceHeading
+                    : (sunPosition?.azimuth || 0)
+                  }deg` 
+                }]
               }
             ]}
           >
@@ -327,7 +290,7 @@ export const RainbowCompass = ({
                 styles.northIndicator,
                 {
                   transform: [{ 
-                    rotate: `${northRotation}deg` 
+                    rotate: `${-deviceHeading}deg` 
                   }]
                 }
               ]}
@@ -358,7 +321,7 @@ export const RainbowCompass = ({
               <View style={styles.directionRow}>
                 <Text style={styles.directionLabel}>🔄 Поворот пчелки:</Text>
                 <Text style={[styles.directionValue, { color: '#9333ea' }]}>
-                  {Math.round(beeRotation)}°
+                  {Math.round(arrowRotation)}°
                 </Text>
               </View>
               <View style={styles.directionRow}>
@@ -383,26 +346,12 @@ export const RainbowCompass = ({
           )}
           
           {isCompassAvailable && (
-            <>
-              <View style={styles.directionRow}>
-                <Text style={styles.directionLabel}>Ваш азимут:</Text>
-                <Text style={styles.directionValue}>
-                  {Math.round(deviceHeading)}° ({getDirectionName(deviceHeading)})
-                </Text>
-              </View>
-              <View style={styles.directionRow}>
-                <Text style={styles.directionLabel}>🎯 Калибровка:</Text>
-                <Text style={styles.directionValue}>
-                  {calibrationOffset > 0 ? `${Math.round(calibrationOffset)}°` : 'Не откалиброван'}
-                </Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.calibrateButton} 
-                onPress={calibrateCompass}
-              >
-                <Text style={styles.calibrateButtonText}>🎯 Откалибровать компас</Text>
-              </TouchableOpacity>
-            </>
+            <View style={styles.directionRow}>
+              <Text style={styles.directionLabel}>Ваш азимут:</Text>
+              <Text style={styles.directionValue}>
+                {Math.round(deviceHeading)}° ({getDirectionName(deviceHeading)})
+              </Text>
+            </View>
           )}
           
           <View style={styles.directionRow}>
@@ -595,7 +544,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     top: 227, // ЮГ компаса - симметрично пчелке (240-13=227)
     left: 152, // Симметрично пчелке (165-13=152)
-    transformOrigin: '13px 13px', // 🎯 ИСПРАВЛЕНО: Поворот вокруг ЦЕНТРА солнца
+    transformOrigin: '-12px -87px', // Поворот вокруг ЦЕНТРА компаса (140-152=-12, 140-227=-87)
     shadowColor: '#f59e0b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
@@ -688,20 +637,6 @@ const styles = StyleSheet.create({
     color: '#92400e',
     textAlign: 'center',
     fontStyle: 'italic',
-  },
-  
-  calibrateButton: {
-    marginTop: 10,
-    padding: 12,
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  
-  calibrateButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   
   instructions: {
