@@ -90,7 +90,7 @@ export class WeatherService {
          
          if (forecastResponse.ok) {
            const forecastData = await forecastResponse.json();
-           recentRainData = this.analyzeRecentRain(forecastData.list);
+           recentRainData = WeatherService.analyzeRecentRain(forecastData.list);
          } else {
            console.log('Прогноз недоступен, продолжаем без анализа недавних осадков');
          }
@@ -99,7 +99,7 @@ export class WeatherService {
          // Продолжаем без анализа недавних осадков
        }
       
-      const weatherData = this.transformWeatherData(currentData);
+      const weatherData = WeatherService.transformWeatherData(currentData);
       
       // Добавляем анализ недавних осадков
       weatherData.recentRain = recentRainData;

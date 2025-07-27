@@ -13,20 +13,20 @@ export class SunCalculator {
    * Вычисляет точное положение солнца
    */
   static calculateSunPosition(latitude, longitude, date = new Date()) {
-    const julianDay = this.getJulianDay(date);
-    const T = (julianDay - this.J2000) / 36525.0; // Centuries since J2000.0
+    const julianDay = SunCalculator.getJulianDay(date);
+    const T = (julianDay - SunCalculator.J2000) / 36525.0; // Centuries since J2000.0
 
     // Геометрическая долгота солнца
-    const L0 = this.getGeometricMeanLongitudeSun(T);
+    const L0 = SunCalculator.getGeometricMeanLongitudeSun(T);
     
     // Эксцентриситет орбиты Земли
-    const e = this.getEarthOrbitEccentricity(T);
+    const e = SunCalculator.getEarthOrbitEccentricity(T);
     
     // Средняя аномалия солнца
-    const M = this.getSunMeanAnomaly(T);
+    const M = SunCalculator.getSunMeanAnomaly(T);
     
     // Уравнение центра
-    const C = this.getSunEquationOfCenter(T, M);
+    const C = SunCalculator.getSunEquationOfCenter(T, M);
     
     // Истинная долгота солнца
     const trueLongitude = L0 + C;
@@ -36,7 +36,7 @@ export class SunCalculator {
     const lambda = trueLongitude - 0.00569 - 0.00478 * Math.sin(omega * this.DEGREES_TO_RADIANS);
     
     // Наклон эклиптики
-    const epsilon = this.getMeanObliquityOfEcliptic(T);
+    const epsilon = SunCalculator.getMeanObliquityOfEcliptic(T);
     
     // Склонение солнца
     const declination = Math.asin(Math.sin(epsilon * this.DEGREES_TO_RADIANS) * 
