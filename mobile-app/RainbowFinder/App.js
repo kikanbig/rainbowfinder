@@ -36,6 +36,15 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// 🚨 ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ОШИБОК
+if (__DEV__) {
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    Logger.error('GLOBAL', 'Необработанная ошибка:', ...args);
+    originalConsoleError.apply(console, args);
+  };
+}
+
 export default function App() {
   // Состояние приложения
   const [location, setLocation] = useState(null);
@@ -48,6 +57,7 @@ export default function App() {
   const [permissionsGranted, setPermissionsGranted] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [initializationError, setInitializationError] = useState(null);
+  const [appError, setAppError] = useState(null); // 🚨 Обработка ошибок приложения
 
   // Ref для отслеживания состояния компонента
   const isMountedRef = useRef(true);
@@ -62,7 +72,12 @@ export default function App() {
 
   // Инициализация приложения
   useEffect(() => {
-    initializeApp();
+    try {
+      initializeApp();
+    } catch (error) {
+      Logger.error('APP', 'Критическая ошибка инициализации:', error);
+      setAppError(error.message);
+    }
   }, []);
 
   // Автообновление каждые 5 минут
@@ -94,7 +109,9 @@ export default function App() {
       setLoading(true);
       
       // Шаг 1: Получаем разрешения
+      Logger.info('APP', 'Запрашиваем разрешения...');
       const permissions = await requestPermissions();
+      Logger.info('APP', `Разрешения получены: ${permissions}`);
       setPermissionsGranted(permissions);
       
       if (!permissions) {
@@ -528,6 +545,31 @@ export default function App() {
             💡 Без геолокации мы не сможем рассчитать{'\n'}
             положение солнца и направление радуги
           </Text>
+        </View>
+        <StatusBar style="light" />
+      </LinearGradient>
+    );
+  }
+
+  // 🚨 ОТОБРАЖЕНИЕ ОШИБОК ПРИЛОЖЕНИЯ
+  if (appError) {
+    return (
+      <LinearGradient colors={['#4C5578', '#71ADBA']} style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="warning-outline" size={80} color="white" />
+          <Text style={styles.errorTitle}>Ошибка приложения</Text>
+          <Text style={styles.errorText}>
+            {appError}{'\n\n'}
+            Попробуйте перезапустить приложение
+          </Text>
+          
+          <TouchableOpacity style={styles.retryButton} onPress={() => {
+            setAppError(null);
+            initializeApp();
+          }}>
+            <Ionicons name="refresh-outline" size={24} color="white" />
+            <Text style={styles.retryButtonText}>Перезапустить</Text>
+          </TouchableOpacity>
         </View>
         <StatusBar style="light" />
       </LinearGradient>

@@ -56,27 +56,43 @@ export const RainbowCompass = ({
   
   // Обработка данных магнитометра
   const handleMagnetometerUpdate = (data) => {
-    setMagnetometerData(data);
-    
-    // Вычисляем направление устройства (азимут)
-    const heading = calculateHeading(data);
-    setDeviceHeading(heading);
+    try {
+      setMagnetometerData(data);
+      
+      // Вычисляем направление устройства (азимут)
+      const heading = calculateHeading(data);
+      setDeviceHeading(heading);
+    } catch (error) {
+      console.error('❌ Ошибка обработки магнитометра:', error);
+      // Не падаем, просто логируем ошибку
+    }
   };
   
   // 🎯 ИСПРАВЛЕННАЯ ФОРМУЛА КОМПАСА
   const calculateHeading = (data) => {
-    // Универсальная формула для всех платформ
-    let heading = Math.atan2(data.y, data.x) * (180 / Math.PI);
-    
-    // Нормализуем угол
-    heading = heading >= 0 ? heading : heading + 360;
-    
-    // 🔧 КАЛИБРОВКА: Компенсируем магнитное склонение
-    // Для России примерно +7° (восточное склонение)
-    const magneticDeclination = 7;
-    heading = (heading + magneticDeclination) % 360;
-    
-    return heading;
+    try {
+      // Проверяем валидность данных
+      if (!data || typeof data.x !== 'number' || typeof data.y !== 'number') {
+        console.warn('⚠️ Некорректные данные магнитометра:', data);
+        return 0;
+      }
+      
+      // Универсальная формула для всех платформ
+      let heading = Math.atan2(data.y, data.x) * (180 / Math.PI);
+      
+      // Нормализуем угол
+      heading = heading >= 0 ? heading : heading + 360;
+      
+      // 🔧 КАЛИБРОВКА: Компенсируем магнитное склонение
+      // Для России примерно +7° (восточное склонение)
+      const magneticDeclination = 7;
+      heading = (heading + magneticDeclination) % 360;
+      
+      return heading;
+    } catch (error) {
+      console.error('❌ Ошибка расчета направления:', error);
+      return 0; // Возвращаем 0 вместо падения
+    }
   };
   
   // 🎯 ФУНКЦИЯ КАЛИБРОВКИ КОМПАСА
@@ -109,49 +125,58 @@ export const RainbowCompass = ({
   // 🐝 СУПЕР-ТОЧНАЯ ЛОГИКА: ПЧЕЛКА СТРОГО НАПРОТИВ СОЛНЦА!
   let targetDirection = 0;
   let isRainbowDirection = false;
+  let beeRotation = 0;
+  let sunRotationAngle = 0;
+  let northRotation = 0;
   
-  if (sunPosition && sunPosition.azimuth !== undefined) {
-    // ФИЗИЧЕСКИЙ ЗАКОН: Радуга всегда появляется в противосолнечной точке
-    // Если солнце на востоке (90°), радуга на западе (270°)
-    // Если солнце на юге (180°), радуга на севере (0°/360°)
+  try {
+    if (sunPosition && sunPosition.azimuth !== undefined) {
+      // ФИЗИЧЕСКИЙ ЗАКОН: Радуга всегда появляется в противосолнечной точке
+      // Если солнце на востоке (90°), радуга на западе (270°)
+      // Если солнце на юге (180°), радуга на севере (0°/360°)
+      
+      const sunAzimuth = sunPosition.azimuth;
+      targetDirection = (sunAzimuth + 180) % 360;
+      
+      isRainbowDirection = true;
+      
+      // 🔍 ОТЛАДКА: Логируем для проверки
+      console.log('🌞 Солнце азимут:', sunAzimuth);
+      console.log('🐝 Пчелка направление:', targetDirection);
+      console.log('📐 Должна быть разница 180°:', Math.abs(targetDirection - sunAzimuth));
+    } else {
+      // Резерв: если нет данных о солнце, используем расчетное направление
+      targetDirection = rainbowDirection?.center || 0;
+      isRainbowDirection = false;
+    }
     
-    const sunAzimuth = sunPosition.azimuth;
-    targetDirection = (sunAzimuth + 180) % 360;
+    // 🎯 ПРАВИЛЬНАЯ ЛОГИКА КОМПАСА С КАЛИБРОВКОЙ
+    if (isCompassAvailable) {
+      // Компас активен: все элементы компенсируют поворот телефона
+      const calibratedHeading = (deviceHeading - calibrationOffset + 360) % 360;
+      beeRotation = targetDirection - calibratedHeading;
+      sunRotationAngle = (sunPosition?.azimuth || 0) - calibratedHeading;
+      northRotation = -calibratedHeading; // Север всегда указывает на истинный север
+    } else {
+      // Статичный режим: просто показываем направления
+      beeRotation = targetDirection;
+      sunRotationAngle = sunPosition?.azimuth || 0;
+      northRotation = 0;
+    }
     
-    isRainbowDirection = true;
-    
-    // 🔍 ОТЛАДКА: Логируем для проверки
-    console.log('🌞 Солнце азимут:', sunAzimuth);
-    console.log('🐝 Пчелка направление:', targetDirection);
-    console.log('📐 Должна быть разница 180°:', Math.abs(targetDirection - sunAzimuth));
-  } else {
-    // Резерв: если нет данных о солнце, используем расчетное направление
-    targetDirection = rainbowDirection?.center || 0;
+    // Нормализуем углы
+    beeRotation = ((beeRotation % 360) + 360) % 360;
+    sunRotationAngle = ((sunRotationAngle % 360) + 360) % 360;
+    northRotation = ((northRotation % 360) + 360) % 360;
+  } catch (error) {
+    console.error('❌ Ошибка расчета компаса:', error);
+    // Используем безопасные значения по умолчанию
+    targetDirection = 0;
+    beeRotation = 0;
+    sunRotationAngle = 0;
+    northRotation = 0;
     isRainbowDirection = false;
   }
-  
-  // 🎯 ПРАВИЛЬНАЯ ЛОГИКА КОМПАСА С КАЛИБРОВКОЙ
-  let beeRotation;
-  let sunRotationAngle;
-  let northRotation;
-  
-  if (isCompassAvailable) {
-    // Компас активен: все элементы компенсируют поворот телефона
-    const calibratedHeading = (deviceHeading - calibrationOffset + 360) % 360;
-    beeRotation = targetDirection - calibratedHeading;
-    sunRotationAngle = (sunPosition?.azimuth || 0) - calibratedHeading;
-    northRotation = -calibratedHeading; // Север всегда указывает на истинный север
-  } else {
-    // Статичный режим: просто показываем направления
-    beeRotation = targetDirection;
-    sunRotationAngle = sunPosition?.azimuth || 0;
-    northRotation = 0;
-  }
-  
-  // Нормализуем углы
-  beeRotation = ((beeRotation % 360) + 360) % 360;
-  sunRotationAngle = ((sunRotationAngle % 360) + 360) % 360;
-  northRotation = ((northRotation % 360) + 360) % 360;
   
   // 🔍 СУПЕР-ДЕТАЛЬНАЯ ОТЛАДКА
   console.log('=== 🐝💞 КОМПАС ДЛЯ КАТИ ===');

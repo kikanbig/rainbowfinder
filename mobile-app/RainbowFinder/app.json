@@ -28,8 +28,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "2f9f6b06-8284-4eb3-9e0f-f13e726c037d"
+        "projectId": "32503c88-f52e-4c6d-b651-9c5036d6dd55"
       }
-    }
+    },
+    "owner": "kiribass"
   }
 }
