@@ -15,8 +15,9 @@ export const RainbowCompass = ({
 }) => {
   
   const [magnetometerData, setMagnetometerData] = useState({ x: 0, y: 0, z: 0 });
-  const [deviceHeading, setDeviceHeading] = useState(0); // Текущее направление устройства
+  const [deviceHeading, setDeviceHeading] = useState(0);
   const [isCompassAvailable, setIsCompassAvailable] = useState(false);
+  const [headingHistory, setHeadingHistory] = useState([]); // Для сглаживания
   const subscription = useRef(null);
   
   // Инициализация датчиков
@@ -36,8 +37,8 @@ export const RainbowCompass = ({
       if (isAvailable) {
         setIsCompassAvailable(true);
         
-        // Устанавливаем частоту обновления
-        Magnetometer.setUpdateInterval(100); // 10 раз в секунду
+        // 🎯 СТАБИЛЬНОСТЬ: Реже обновления = меньше дерганий
+        Magnetometer.setUpdateInterval(300); // 3 раза в секунду
         
         // Подписываемся на данные магнитометра
         subscription.current = Magnetometer.addListener(handleMagnetometerUpdate);
@@ -53,13 +54,20 @@ export const RainbowCompass = ({
     }
   };
   
-  // Обработка данных магнитометра
+  // 🎯 СТАБИЛЬНАЯ ОБРАБОТКА МАГНИТОМЕТРА
   const handleMagnetometerUpdate = (data) => {
     setMagnetometerData(data);
     
-    // Вычисляем направление устройства (азимут)
-    const heading = calculateHeading(data);
-    setDeviceHeading(heading);
+    // Вычисляем сырое направление
+    const rawHeading = calculateHeading(data);
+    
+    // 📈 СГЛАЖИВАНИЕ: Скользящее среднее из 3 значений
+    setHeadingHistory(prev => {
+      const newHistory = [...prev, rawHeading].slice(-3); // Последние 3 значения
+      const smoothedHeading = newHistory.reduce((sum, h) => sum + h, 0) / newHistory.length;
+      setDeviceHeading(Math.round(smoothedHeading));
+      return newHistory;
+    });
   };
   
   // Вычисление направления устройства в градусах
@@ -198,7 +206,7 @@ export const RainbowCompass = ({
     : '☀️ Примерное направление (от солнца)';
   
   const compassStatusText = isCompassAvailable 
-    ? '🐝 Пчелка показывает напротив реального солнца!' 
+    ? '🐝 Пчелка реагирует на солнце | 🧭 Красная N всегда указывает на север' 
     : '📍 Пчелка напротив солнца (примерно)';
   
       return (
@@ -283,14 +291,14 @@ export const RainbowCompass = ({
             <Ionicons name="sunny" size={16} color="#f59e0b" />
           </View>
           
-          {/* Индикатор севера (красная точка указывает истинный север) */}
+          {/* 🧭 УЛУЧШЕННЫЙ ИНДИКАТОР СЕВЕРА - всегда указывает на истинный север */}
           {isCompassAvailable && (
             <View
               style={[
                 styles.northIndicator,
                 {
                   transform: [{ 
-                    rotate: `${-deviceHeading}deg` 
+                    rotate: `${-deviceHeading}deg` // Поворачиваем ПРОТИВОПОЛОЖНО устройству
                   }]
                 }
               ]}
@@ -328,6 +336,12 @@ export const RainbowCompass = ({
                 <Text style={styles.directionLabel}>🧭 Магнитометр:</Text>
                 <Text style={[styles.directionValue, { color: '#059669' }]}>
                   {Math.round(deviceHeading)}°
+                </Text>
+              </View>
+              <View style={styles.directionRow}>
+                <Text style={styles.directionLabel}>🧭 Поворот севера:</Text>
+                <Text style={[styles.directionValue, { color: '#dc2626' }]}>
+                  {Math.round(-deviceHeading)}° (противоположно)
                 </Text>
               </View>
               <View style={styles.directionRow}>
