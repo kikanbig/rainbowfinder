@@ -28,6 +28,14 @@ export const RainbowCompass = ({
     };
   }, []);
   
+  // 📊 БЕЗОПАСНОЕ СГЛАЖИВАНИЕ: Отдельный useEffect для обновления направления
+  useEffect(() => {
+    if (headingHistory.length > 0) {
+      const smoothedHeading = headingHistory.reduce((sum, h) => sum + h, 0) / headingHistory.length;
+      setDeviceHeading(Math.round(smoothedHeading));
+    }
+  }, [headingHistory]);
+  
   // 🔧 НОВЫЙ СТАБИЛЬНЫЙ КОМПАС
   const initializeCompass = async () => {
     try {
@@ -51,21 +59,19 @@ export const RainbowCompass = ({
     }
   };
   
-  // 🎯 СТАБИЛЬНАЯ ОБРАБОТКА ДАТЧИКОВ
+  // 🛡️ БЕЗОПАСНАЯ ОБРАБОТКА ДАТЧИКОВ
   const handleMagnetometerUpdate = (data) => {
     setMagnetometerData(data);
     
-    // Простой расчет направления (единая формула для всех платформ)
+    // Простой расчет направления
     let rawHeading = Math.atan2(data.y, data.x) * (180 / Math.PI);
     if (rawHeading < 0) rawHeading += 360;
     
-    // 📈 СГЛАЖИВАНИЕ: Скользящее среднее из 5 значений
-    setHeadingHistory(prev => {
-      const newHistory = [...prev, rawHeading].slice(-5); // Последние 5 значений
-      const smoothedHeading = newHistory.reduce((sum, h) => sum + h, 0) / newHistory.length;
-      setDeviceHeading(Math.round(smoothedHeading));
-      return newHistory;
-    });
+      // ✅ ПРОСТОЕ И БЕЗОПАСНОЕ: Только обновляем историю
+  setHeadingHistory(prev => {
+    const newHistory = [...prev, rawHeading].slice(-5);
+    return newHistory;
+  });
   };
   
   // Отписка от датчиков
