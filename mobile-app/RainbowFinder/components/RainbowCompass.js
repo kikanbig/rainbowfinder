@@ -132,10 +132,17 @@ export const RainbowCompass = ({
   // Нормализуем угол
   arrowRotation = ((arrowRotation % 360) + 360) % 360;
   
-  // 🔍 ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
-  console.log('🧭 deviceHeading:', deviceHeading);
-  console.log('🎯 targetDirection:', targetDirection);
-  console.log('🔄 arrowRotation:', arrowRotation);
+  // 🔍 МАКСИМАЛЬНАЯ ОТЛАДОЧНАЯ ИНФОРМАЦИЯ
+  console.log('=== ОТЛАДКА КОМПАСА ===');
+  console.log('🌞 Солнце азимут:', sunPosition?.azimuth);
+  console.log('🐝 Пчелка направление:', targetDirection);
+  console.log('📐 Математическая разница:', Math.abs(targetDirection - (sunPosition?.azimuth || 0)));
+  console.log('🧭 Магнитометр:', deviceHeading);
+  console.log('🔄 Поворот пчелки:', arrowRotation);
+  console.log('☀️ Поворот солнца:', isCompassAvailable 
+    ? (sunPosition?.azimuth || 0) - deviceHeading
+    : (sunPosition?.azimuth || 0));
+  console.log('========================');
 
   // Функция для получения названия направления
   const getDirectionName = (degrees) => {
@@ -480,8 +487,9 @@ const styles = StyleSheet.create({
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    top: 20, // Внутри компаса
-    transformOrigin: '25px 115px', // Центр компаса как точка поворота
+    top: 20, // Позиция в компасе (СЕВЕР)
+    left: 125, // Центрируем горизонтально
+    transformOrigin: '25px 115px', // Поворот вокруг центра компаса (135px от верха)
   },
   
   beeContainer: {
@@ -523,8 +531,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    top: 190, // Поднимаю выше, чтобы поместился в компас
-    transformOrigin: '13px -76px', // Центр компаса как точка поворота
+    top: 250, // Позиция в компасе (ЮГ) - напротив пчелки
+    left: 137, // Центрируем горизонтально
+    transformOrigin: '13px -115px', // Поворот вокруг ТОГО ЖЕ центра что и пчелка
     shadowColor: '#f59e0b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
@@ -536,13 +545,15 @@ const styles = StyleSheet.create({
   
   northIndicator: {
     position: 'absolute',
-    top: 10, // Внутри компаса, вверху
+    top: 10, // Позиция СЕВЕРА в компасе
+    left: 138, // Центрируем горизонтально 
     backgroundColor: '#ef4444',
     width: 24,
     height: 24,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    transformOrigin: '12px 125px', // Поворот вокруг центра компаса
     shadowColor: '#ef4444',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
