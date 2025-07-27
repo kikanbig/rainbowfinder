@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     top: 10, // СЕВЕР компаса (центр - 25px = 140px - 25px = 115px)
     left: 115, // ЦЕНТР горизонтально (центр - 25px = 140px - 25px = 115px)
-    transformOrigin: '25px 130px', // Поворот вокруг ЦЕНТРА компаса (140px от верха)
+    transformOrigin: '25px 130px', // Поворот вокруг ЦЕНТРА компаса (140-10 = 130px)
   },
   
   beeContainer: {
@@ -542,9 +542,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    top: 254, // ЮГ компаса (центр + радиус - 13px = 140px + 140px - 13px = 267px, но ограничим)
+    top: 232, // ЮГ компаса (центр + расстояние_пчелки = 140 + (140-35) = 245, minus 13px = 232)
     left: 127, // ЦЕНТР горизонтально (центр - 13px = 140px - 13px = 127px)
-    transformOrigin: '13px -114px', // Поворот вокруг ЦЕНТРА компаса (140px - 254px = -114px)
+    transformOrigin: '13px -92px', // Поворот вокруг ЦЕНТРА компаса (140-232 = -92px)
     shadowColor: '#f59e0b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    transformOrigin: '12px 132px', // Поворот вокруг ЦЕНТРА компаса (140px - 8px = 132px)
+    transformOrigin: '12px 132px', // Поворот вокруг ЦЕНТРА компаса (140-8 = 132px)
     shadowColor: '#ef4444',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
