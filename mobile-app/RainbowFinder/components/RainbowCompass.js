@@ -15,7 +15,8 @@ export const RainbowCompass = ({
 }) => {
   
   const [magnetometerData, setMagnetometerData] = useState({ x: 0, y: 0, z: 0 });
-  const [deviceHeading, setDeviceHeading] = useState(0); // Текущее направление устройства
+  const [deviceHeading, setDeviceHeading] = useState(0);
+  const [headingHistory, setHeadingHistory] = useState([]); // Для сглаживания
   const [isCompassAvailable, setIsCompassAvailable] = useState(false);
   const subscription = useRef(null);
   
@@ -27,52 +28,44 @@ export const RainbowCompass = ({
     };
   }, []);
   
-  // Инициализация компаса
+  // 🔧 НОВЫЙ СТАБИЛЬНЫЙ КОМПАС
   const initializeCompass = async () => {
     try {
-      // Проверяем доступность магнитометра
       const isAvailable = await Magnetometer.isAvailableAsync();
       
       if (isAvailable) {
         setIsCompassAvailable(true);
         
-        // Устанавливаем частоту обновления
-        Magnetometer.setUpdateInterval(100); // 10 раз в секунду
+        // 🚀 СТАБИЛЬНОСТЬ: Редкие обновления + сглаживание
+        Magnetometer.setUpdateInterval(500); // 2 раза в секунду (стабильнее!)
         
-        // Подписываемся на данные магнитометра
         subscription.current = Magnetometer.addListener(handleMagnetometerUpdate);
-        
-        console.log('🧭 Компас успешно инициализирован');
+        console.log('🧭 Стабильный компас инициализирован');
       } else {
-        console.log('⚠️ Магнитометр недоступен на этом устройстве');
+        console.log('⚠️ Магнитометр недоступен');
         setIsCompassAvailable(false);
       }
     } catch (error) {
-      console.error('❌ Ошибка инициализации компаса:', error);
+      console.error('❌ Ошибка компаса:', error);
       setIsCompassAvailable(false);
     }
   };
   
-  // Обработка данных магнитометра
+  // 🎯 СТАБИЛЬНАЯ ОБРАБОТКА ДАТЧИКОВ
   const handleMagnetometerUpdate = (data) => {
     setMagnetometerData(data);
     
-    // Вычисляем направление устройства (азимут)
-    const heading = calculateHeading(data);
-    setDeviceHeading(heading);
-  };
-  
-  // Вычисление направления устройства в градусах
-  const calculateHeading = (data) => {
-    if (Platform.OS === 'ios') {
-      // На iOS используем стандартную формулу
-      let heading = Math.atan2(data.y, data.x) * (180 / Math.PI);
-      return heading >= 0 ? heading : heading + 360;
-    } else {
-      // На Android может потребоваться другая формула
-      let heading = Math.atan2(-data.y, data.x) * (180 / Math.PI);
-      return heading >= 0 ? heading : heading + 360;
-    }
+    // Простой расчет направления (единая формула для всех платформ)
+    let rawHeading = Math.atan2(data.y, data.x) * (180 / Math.PI);
+    if (rawHeading < 0) rawHeading += 360;
+    
+    // 📈 СГЛАЖИВАНИЕ: Скользящее среднее из 5 значений
+    setHeadingHistory(prev => {
+      const newHistory = [...prev, rawHeading].slice(-5); // Последние 5 значений
+      const smoothedHeading = newHistory.reduce((sum, h) => sum + h, 0) / newHistory.length;
+      setDeviceHeading(Math.round(smoothedHeading));
+      return newHistory;
+    });
   };
   
   // Отписка от датчиков
@@ -119,18 +112,27 @@ export const RainbowCompass = ({
     isRainbowDirection = false;
   }
   
-  // 🔄 НОВАЯ ЛОГИКА: Убираем корректировки для чистого тестирования
-  let arrowRotation;
+  // 🎯 ПРОСТАЯ ЛОГИКА ПОВОРОТА
+  let beeRotation = 0;
+  let sunRotationAngle = 0;
+  let northRotation = 0;
+  
   if (isCompassAvailable) {
-    // Компас активен: пчелка поворачивается относительно магнитного севера
-    arrowRotation = targetDirection - deviceHeading;
+    // Компас активен: поворачиваем относительно устройства
+    beeRotation = targetDirection - deviceHeading;
+    sunRotationAngle = (sunPosition?.azimuth || 0) - deviceHeading;
+    northRotation = -deviceHeading; // Север всегда указывает на истинный север
   } else {
-    // Статичный режим: пчелка просто указывает направление
-    arrowRotation = targetDirection;
+    // Статичный режим: просто показываем направления
+    beeRotation = targetDirection;
+    sunRotationAngle = sunPosition?.azimuth || 0;
+    northRotation = 0;
   }
   
-  // Нормализуем угол
-  arrowRotation = ((arrowRotation % 360) + 360) % 360;
+  // Нормализуем углы
+  beeRotation = ((beeRotation % 360) + 360) % 360;
+  sunRotationAngle = ((sunRotationAngle % 360) + 360) % 360;
+  northRotation = ((northRotation % 360) + 360) % 360;
   
   // 🔍 СУПЕР-ДЕТАЛЬНАЯ ОТЛАДКА
   console.log('=== 🐝💞 КОМПАС ДЛЯ КАТИ ===');
@@ -138,13 +140,9 @@ export const RainbowCompass = ({
   console.log('🐝 Пчелка направление:', targetDirection);
   console.log('📐 Разница (должна быть ~180°):', Math.abs(targetDirection - (sunPosition?.azimuth || 0)));
   console.log('🧭 Магнитометр (поворот телефона):', deviceHeading);
-  console.log('🔄 CSS поворот пчелки:', arrowRotation, '°');
-  
-  const sunRotation = isCompassAvailable 
-    ? (sunPosition?.azimuth || 0) - deviceHeading
-    : (sunPosition?.azimuth || 0);
-  console.log('☀️ CSS поворот солнца:', sunRotation, '°');
-  console.log('🎯 CSS разница (должна быть ~180°):', Math.abs(arrowRotation - sunRotation));
+  console.log('🔄 CSS поворот пчелки:', beeRotation, '°');
+  console.log('☀️ CSS поворот солнца:', sunRotationAngle, '°');
+  console.log('🎯 CSS разница (должна быть ~180°):', Math.abs(beeRotation - sunRotationAngle));
   
   // 🧪 ТЕСТИРОВАНИЕ: Если солнце на востоке (90°), пчелка должна быть на западе (270°)
   if (sunPosition?.azimuth) {
@@ -251,12 +249,12 @@ export const RainbowCompass = ({
             );
           })}
           
-          {/* Большая милая пчелка указывает на радугу */}
+          {/* 🐝 ПРОСТАЯ ПЧЕЛКА - поворачивается легко */}
           <View
             style={[
               styles.mainBeeIndicator,
               {
-                transform: [{ rotate: `${arrowRotation}deg` }]
+                transform: [{ rotate: `${beeRotation}deg` }]
               }
             ]}
           >
@@ -266,32 +264,25 @@ export const RainbowCompass = ({
             </View>
           </View>
           
-          {/* Индикатор солнца (новая логика без корректировок) */}
+          {/* ☀️ ПРОСТОЕ СОЛНЦЕ - остается в компасе */}
           <View
             style={[
               styles.sunIndicator,
               {
-                transform: [{ 
-                  rotate: `${isCompassAvailable 
-                    ? (sunPosition?.azimuth || 0) - deviceHeading
-                    : (sunPosition?.azimuth || 0)
-                  }deg` 
-                }]
+                transform: [{ rotate: `${sunRotationAngle}deg` }]
               }
             ]}
           >
             <Ionicons name="sunny" size={16} color="#f59e0b" />
           </View>
           
-          {/* Индикатор севера (красная точка указывает истинный север) */}
+          {/* 🧭 ПРОСТОЙ СЕВЕР - всегда указывает правильно */}
           {isCompassAvailable && (
             <View
               style={[
                 styles.northIndicator,
                 {
-                  transform: [{ 
-                    rotate: `${-deviceHeading}deg` 
-                  }]
+                  transform: [{ rotate: `${northRotation}deg` }]
                 }
               ]}
             >
@@ -494,13 +485,13 @@ const styles = StyleSheet.create({
   
   mainBeeIndicator: {
     position: 'absolute',
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    top: 40, // СЕВЕР компаса - ближе к центру чтобы поместиться
-    left: 115, // ЦЕНТР горизонтально
-    transformOrigin: '25px 100px', // Поворот вокруг ЦЕНТРА компаса (140-40 = 100px)
+    top: 50, // ПРОСТАЯ позиция - север компаса
+    left: 120, // ПРОСТАЯ позиция - центр горизонтально
+    // НЕТ СЛОЖНЫХ transformOrigin!
   },
   
   beeContainer: {
@@ -536,35 +527,33 @@ const styles = StyleSheet.create({
   
   sunIndicator: {
     position: 'absolute',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: 'rgba(245, 158, 11, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    top: 227, // ЮГ компаса - симметрично пчелке (240-13=227)
-    left: 152, // Симметрично пчелке (165-13=152)
-    transformOrigin: '-12px -87px', // Поворот вокруг ЦЕНТРА компаса (140-152=-12, 140-227=-87)
+    top: 210, // ЮГ компаса - ПРОСТАЯ позиция
+    left: 128, // ПРОСТАЯ позиция - центр
+    // НЕТ СЛОЖНЫХ transformOrigin!
     shadowColor: '#f59e0b',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 12,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    elevation: 3,
   },
   
   northIndicator: {
     position: 'absolute',
-    top: 8, // СЕВЕР компаса (центр - радиус - 12px = 140px - 140px + 8px)
-    left: 128, // ЦЕНТР горизонтально (центр - 12px = 140px - 12px = 128px)
+    top: 20, // ПРОСТАЯ позиция - север компаса
+    left: 128, // ПРОСТАЯ позиция - центр
     backgroundColor: '#ef4444',
     width: 24,
     height: 24,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    transformOrigin: '12px 132px', // Поворот вокруг ЦЕНТРА компаса (140-8 = 132px)
+    // НЕТ СЛОЖНЫХ transformOrigin!
     shadowColor: '#ef4444',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
