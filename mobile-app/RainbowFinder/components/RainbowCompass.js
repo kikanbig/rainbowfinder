@@ -130,13 +130,13 @@ export const RainbowCompass = ({
     isRainbowDirection = false;
   }
   
-  // 🔄 ПРАВИЛЬНАЯ ЛОГИКА: Пчелка показывает на надпись "Радуга"
+  // 🔄 ПРАВИЛЬНАЯ ЛОГИКА: Пчелка всегда напротив солнца
   let arrowRotation;
   if (isCompassAvailable) {
-    // Пчелка показывает на надпись "Радуга" (напротив солнца)
+    // Пчелка показывает напротив солнца (на радугу)
     arrowRotation = (sunPosition?.azimuth || 0) + 180 - deviceHeading;
   } else {
-    // Статичный режим: пчелка просто указывает направление
+    // Статичный режим: пчелка просто указывает напротив солнца
     arrowRotation = (sunPosition?.azimuth || 0) + 180;
   }
   
@@ -235,13 +235,16 @@ export const RainbowCompass = ({
           {/* Центральная точка */}
           <View style={styles.centerDot} />
           
-                                    {/* "Радуга" напротив солнца */}
+                                    {/* "Радуга" напротив солнца (ДВИЖЕТСЯ С ТЕЛЕФОНОМ) */}
                           <View
                             style={[
                               styles.rainbowLabel,
                               {
                                 transform: [{ 
-                                  rotate: `${(sunPosition?.azimuth || 0) + 180}deg` 
+                                  rotate: `${isCompassAvailable 
+                                    ? (sunPosition?.azimuth || 0) + 180 - deviceHeading
+                                    : (sunPosition?.azimuth || 0) + 180
+                                  }deg` 
                                 }]
                               }
                             ]}
@@ -285,13 +288,16 @@ export const RainbowCompass = ({
             </View>
           </View>
           
-                                    {/* Индикатор солнца (РЕАЛЬНОЕ ПОЛОЖЕНИЕ) */}
+                                    {/* Индикатор солнца (ДВИЖЕТСЯ С ТЕЛЕФОНОМ, ПОКАЗЫВАЕТ СОЛНЦЕ) */}
                           <View
                             style={[
                               styles.sunIndicator,
                               {
                                 transform: [{ 
-                                  rotate: `${sunPosition?.azimuth || 0}deg` 
+                                  rotate: `${isCompassAvailable 
+                                    ? (sunPosition?.azimuth || 0) - deviceHeading
+                                    : (sunPosition?.azimuth || 0)
+                                  }deg` 
                                 }]
                               }
                             ]}
@@ -299,10 +305,21 @@ export const RainbowCompass = ({
                             <Ionicons name="sunny" size={16} color="#f59e0b" />
                           </View>
           
-                                    {/* Индикатор севера (СТАТИЧНЫЙ СЕВЕР - всегда на север) */}
-                          <View style={styles.northIndicator}>
-                            <Text style={styles.northText}>N</Text>
-                          </View>
+                                    {/* Индикатор севера (ДВИЖЕТСЯ С ТЕЛЕФОНОМ, ПОКАЗЫВАЕТ СЕВЕР) */}
+                          {isCompassAvailable && (
+                            <View
+                              style={[
+                                styles.northIndicator,
+                                {
+                                  transform: [{ 
+                                    rotate: `${-deviceHeading}deg` 
+                                  }]
+                                }
+                              ]}
+                            >
+                              <Text style={styles.northText}>N</Text>
+                            </View>
+                          )}
           
         </LinearGradient>
       </View>
