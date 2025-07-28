@@ -53,13 +53,21 @@ export const RainbowCompass = ({
     }
   };
   
-  // Обработка данных магнитометра
+  // Обработка данных магнитометра (С ФИЛЬТРАЦИЕЙ)
   const handleMagnetometerUpdate = (data) => {
     setMagnetometerData(data);
     
     // Вычисляем направление устройства (азимут)
     const heading = calculateHeading(data);
-    setDeviceHeading(heading);
+    
+    // Фильтруем резкие изменения (стабилизация)
+    const currentHeading = deviceHeading;
+    const headingDiff = Math.abs(heading - currentHeading);
+    
+    // Если изменение слишком резкое (>30°), игнорируем
+    if (headingDiff < 30 || currentHeading === 0) {
+      setDeviceHeading(heading);
+    }
   };
   
   // Вычисление направления устройства в градусах
@@ -119,8 +127,15 @@ export const RainbowCompass = ({
     isRainbowDirection = false;
   }
   
-  // 🔄 ИСПРАВЛЕННАЯ ЛОГИКА: Пчелка всегда напротив солнца
-  let arrowRotation = targetDirection;
+  // 🔄 ВОССТАНОВЛЕНА ЛОГИКА ДВИЖЕНИЯ: Пчелка напротив солнца + реагирует на поворот телефона
+  let arrowRotation;
+  if (isCompassAvailable) {
+    // Компас активен: пчелка поворачивается относительно магнитного севера
+    arrowRotation = targetDirection - deviceHeading;
+  } else {
+    // Статичный режим: пчелка просто указывает направление
+    arrowRotation = targetDirection;
+  }
   
   // Нормализуем угол
   arrowRotation = ((arrowRotation % 360) + 360) % 360;
@@ -273,10 +288,21 @@ export const RainbowCompass = ({
                             <Ionicons name="sunny" size={16} color="#f59e0b" />
                           </View>
           
-                                    {/* Индикатор севера (СТАТИЧНЫЙ СЕВЕР) */}
-                          <View style={styles.northIndicator}>
-                            <Text style={styles.northText}>N</Text>
-                          </View>
+                                    {/* Индикатор севера (ДВИЖУЩИЙСЯ СЕВЕР) */}
+                          {isCompassAvailable && (
+                            <View
+                              style={[
+                                styles.northIndicator,
+                                {
+                                  transform: [{ 
+                                    rotate: `${-deviceHeading}deg` 
+                                  }]
+                                }
+                              ]}
+                            >
+                              <Text style={styles.northText}>N</Text>
+                            </View>
+                          )}
           
         </LinearGradient>
       </View>
