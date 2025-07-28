@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Magnetometer } from 'expo-sensors';
@@ -17,7 +17,7 @@ export const RainbowCompass = ({
   const [magnetometerData, setMagnetometerData] = useState({ x: 0, y: 0, z: 0 });
   const [deviceHeading, setDeviceHeading] = useState(0); // Текущее направление устройства
   const [isCompassAvailable, setIsCompassAvailable] = useState(false);
-  const [northOffset, setNorthOffset] = useState(0); // Калибровка севера
+
   const subscription = useRef(null);
   
   // Инициализация датчиков
@@ -92,11 +92,7 @@ export const RainbowCompass = ({
     }
   };
   
-  // Калибровка севера
-  const calibrateNorth = () => {
-    setNorthOffset(deviceHeading);
-    console.log('🧭 Север откалиброван:', deviceHeading);
-  };
+
   
   // ИСПРАВЛЕНО: Показываем компас даже при низкой вероятности (для тестирования)
   if (!rainbowDirection && !sunPosition) {
@@ -134,11 +130,11 @@ export const RainbowCompass = ({
     isRainbowDirection = false;
   }
   
-  // 🔄 ИСПРАВЛЕННАЯ ЛОГИКА: Пчелка напротив солнца + калибровка севера
+  // 🔄 ПРАВИЛЬНАЯ ЛОГИКА: Пчелка показывает направление на радугу
   let arrowRotation;
   if (isCompassAvailable) {
-    // Компас активен: пчелка поворачивается относительно калиброванного севера
-    arrowRotation = targetDirection - (deviceHeading - northOffset);
+    // Пчелка показывает направление на радугу относительно реального севера
+    arrowRotation = targetDirection - deviceHeading;
   } else {
     // Статичный режим: пчелка просто указывает направление
     arrowRotation = targetDirection;
@@ -239,11 +235,8 @@ export const RainbowCompass = ({
           {/* Центральная точка */}
           <View style={styles.centerDot} />
           
-          {/* Стороны света */}
-          <Text style={[styles.cardinalDirection, styles.north]}>С</Text>
-          <Text style={[styles.cardinalDirection, styles.east]}>В</Text>
-          <Text style={[styles.cardinalDirection, styles.south]}>Ю</Text>
-          <Text style={[styles.cardinalDirection, styles.west]}>З</Text>
+                                    {/* Только "Радуга" сверху */}
+                          <Text style={[styles.cardinalDirection, styles.north]}>🌈 Радуга</Text>
           
           {/* Деления компаса */}
           {Array.from({ length: 36 }, (_, i) => {
@@ -281,16 +274,13 @@ export const RainbowCompass = ({
             </View>
           </View>
           
-                                    {/* Индикатор солнца (ДВИЖУЩЕЕСЯ СОЛНЦЕ) */}
+                                    {/* Индикатор солнца (РЕАЛЬНОЕ ПОЛОЖЕНИЕ) */}
                           <View
                             style={[
                               styles.sunIndicator,
                               {
                                 transform: [{ 
-                                  rotate: `${isCompassAvailable 
-                                    ? (sunPosition?.azimuth || 0) - deviceHeading
-                                    : (sunPosition?.azimuth || 0)
-                                  }deg` 
+                                  rotate: `${sunPosition?.azimuth || 0}deg` 
                                 }]
                               }
                             ]}
@@ -298,8 +288,17 @@ export const RainbowCompass = ({
                             <Ionicons name="sunny" size={16} color="#f59e0b" />
                           </View>
           
-                                    {/* Индикатор севера (СТАТИЧНЫЙ СЕВЕР - всегда на север) */}
-                          <View style={styles.northIndicator}>
+                                    {/* Индикатор севера (РЕАЛЬНЫЙ СЕВЕР) */}
+                          <View
+                            style={[
+                              styles.northIndicator,
+                              {
+                                transform: [{ 
+                                  rotate: `${-deviceHeading}deg` 
+                                }]
+                              }
+                            ]}
+                          >
                             <Text style={styles.northText}>N</Text>
                           </View>
           
@@ -401,14 +400,7 @@ export const RainbowCompass = ({
                             <Text style={styles.calibrationText}>
                               💡 Совет: для точности отойдите от металлических предметов и WiFi роутеров
                             </Text>
-                            <TouchableOpacity 
-                              style={styles.calibrateButton}
-                              onPress={calibrateNorth}
-                            >
-                              <Text style={styles.calibrateButtonText}>
-                                🧭 Калибровать север
-                              </Text>
-                            </TouchableOpacity>
+
                           </View>
                         )}
     </View>
@@ -652,19 +644,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   
-  calibrateButton: {
-    backgroundColor: '#f59e0b',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 15,
-    alignSelf: 'center',
-  },
-  
-  calibrateButtonText: {
-    fontSize: 12,
-    color: 'white',
-    fontWeight: 'bold',
-  },
+
   
   instructions: {
     marginTop: 20,
