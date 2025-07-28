@@ -130,14 +130,14 @@ export const RainbowCompass = ({
     isRainbowDirection = false;
   }
   
-  // 🔄 ПРАВИЛЬНАЯ ЛОГИКА: Пчелка показывает направление на радугу
+  // 🔄 ПРАВИЛЬНАЯ ЛОГИКА: Пчелка показывает на надпись "Радуга"
   let arrowRotation;
   if (isCompassAvailable) {
-    // Пчелка показывает направление на радугу относительно реального севера
-    arrowRotation = targetDirection - deviceHeading;
+    // Пчелка показывает на надпись "Радуга" (напротив солнца)
+    arrowRotation = (sunPosition?.azimuth || 0) + 180 - deviceHeading;
   } else {
     // Статичный режим: пчелка просто указывает направление
-    arrowRotation = targetDirection;
+    arrowRotation = (sunPosition?.azimuth || 0) + 180;
   }
   
   // Нормализуем угол
@@ -235,8 +235,19 @@ export const RainbowCompass = ({
           {/* Центральная точка */}
           <View style={styles.centerDot} />
           
-                                    {/* Только "Радуга" сверху */}
-                          <Text style={[styles.cardinalDirection, styles.north]}>🌈 Радуга</Text>
+                                    {/* "Радуга" напротив солнца */}
+                          <View
+                            style={[
+                              styles.rainbowLabel,
+                              {
+                                transform: [{ 
+                                  rotate: `${(sunPosition?.azimuth || 0) + 180}deg` 
+                                }]
+                              }
+                            ]}
+                          >
+                            <Text style={styles.rainbowLabelText}>🌈 Радуга</Text>
+                          </View>
           
           {/* Деления компаса */}
           {Array.from({ length: 36 }, (_, i) => {
@@ -288,17 +299,8 @@ export const RainbowCompass = ({
                             <Ionicons name="sunny" size={16} color="#f59e0b" />
                           </View>
           
-                                    {/* Индикатор севера (РЕАЛЬНЫЙ СЕВЕР) */}
-                          <View
-                            style={[
-                              styles.northIndicator,
-                              {
-                                transform: [{ 
-                                  rotate: `${-deviceHeading}deg` 
-                                }]
-                              }
-                            ]}
-                          >
+                                    {/* Индикатор севера (СТАТИЧНЫЙ СЕВЕР - всегда на север) */}
+                          <View style={styles.northIndicator}>
                             <Text style={styles.northText}>N</Text>
                           </View>
           
@@ -486,6 +488,23 @@ const styles = StyleSheet.create({
   south: { bottom: 10 },
   east: { right: 10 },
   west: { left: 10 },
+  
+  rainbowLabel: {
+    position: 'absolute',
+    top: 10,
+    left: '50%',
+    marginLeft: -30,
+    width: 60,
+    alignItems: 'center',
+    transformOrigin: '30px 130px', // Поворот вокруг центра компаса
+  },
+  
+  rainbowLabelText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#374151',
+    textAlign: 'center',
+  },
   
   compassTick: {
     position: 'absolute',
