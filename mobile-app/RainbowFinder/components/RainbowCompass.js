@@ -119,15 +119,8 @@ export const RainbowCompass = ({
     isRainbowDirection = false;
   }
   
-  // 🔄 НОВАЯ ЛОГИКА: Убираем корректировки для чистого тестирования
-  let arrowRotation;
-  if (isCompassAvailable) {
-    // Компас активен: пчелка поворачивается относительно магнитного севера
-    arrowRotation = targetDirection - deviceHeading;
-  } else {
-    // Статичный режим: пчелка просто указывает направление
-    arrowRotation = targetDirection;
-  }
+  // 🔄 ИСПРАВЛЕННАЯ ЛОГИКА: Пчелка всегда напротив солнца
+  let arrowRotation = targetDirection;
   
   // Нормализуем угол
   arrowRotation = ((arrowRotation % 360) + 360) % 360;
@@ -266,38 +259,24 @@ export const RainbowCompass = ({
             </View>
           </View>
           
-          {/* Индикатор солнца (новая логика без корректировок) */}
-          <View
-            style={[
-              styles.sunIndicator,
-              {
-                transform: [{ 
-                  rotate: `${isCompassAvailable 
-                    ? (sunPosition?.azimuth || 0) - deviceHeading
-                    : (sunPosition?.azimuth || 0)
-                  }deg` 
-                }]
-              }
-            ]}
-          >
-            <Ionicons name="sunny" size={16} color="#f59e0b" />
-          </View>
+                                    {/* Индикатор солнца (ИСПРАВЛЕННАЯ ЛОГИКА) */}
+                          <View
+                            style={[
+                              styles.sunIndicator,
+                              {
+                                transform: [{ 
+                                  rotate: `${sunPosition?.azimuth || 0}deg` 
+                                }]
+                              }
+                            ]}
+                          >
+                            <Ionicons name="sunny" size={16} color="#f59e0b" />
+                          </View>
           
-          {/* Индикатор севера (красная точка указывает истинный север) */}
-          {isCompassAvailable && (
-            <View
-              style={[
-                styles.northIndicator,
-                {
-                  transform: [{ 
-                    rotate: `${-deviceHeading}deg` 
-                  }]
-                }
-              ]}
-            >
-              <Text style={styles.northText}>N</Text>
-            </View>
-          )}
+                                    {/* Индикатор севера (СТАТИЧНЫЙ СЕВЕР) */}
+                          <View style={styles.northIndicator}>
+                            <Text style={styles.northText}>N</Text>
+                          </View>
           
         </LinearGradient>
       </View>
@@ -536,15 +515,15 @@ const styles = StyleSheet.create({
   
   sunIndicator: {
     position: 'absolute',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: 'rgba(245, 158, 11, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    top: 227, // ЮГ компаса - симметрично пчелке (240-13=227)
-    left: 152, // Симметрично пчелке (165-13=152)
-    transformOrigin: '-12px -87px', // Поворот вокруг ЦЕНТРА компаса (140-152=-12, 140-227=-87)
+    top: 20, // СЕВЕР компаса - в пределах круга
+    left: 128, // ЦЕНТР горизонтально (140-12=128)
+    transformOrigin: '12px 120px', // Поворот вокруг ЦЕНТРА компаса (140-20=120px)
     shadowColor: '#f59e0b',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
