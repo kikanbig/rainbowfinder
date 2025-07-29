@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Magnetometer } from 'expo-sensors';
@@ -17,6 +17,7 @@ export const RainbowCompass = ({
   const [magnetometerData, setMagnetometerData] = useState({ x: 0, y: 0, z: 0 });
   const [deviceHeading, setDeviceHeading] = useState(0); // Текущее направление устройства
   const [isCompassAvailable, setIsCompassAvailable] = useState(false);
+  const [northOffset, setNorthOffset] = useState(0); // Калибровка севера
 
   const subscription = useRef(null);
   
@@ -92,6 +93,12 @@ export const RainbowCompass = ({
     }
   };
   
+  // Калибровка севера
+  const calibrateNorth = () => {
+    setNorthOffset(deviceHeading);
+    console.log('🎯 Север откалиброван! Смещение:', deviceHeading, '°');
+  };
+  
 
   
   // ИСПРАВЛЕНО: Показываем компас даже при низкой вероятности (для тестирования)
@@ -134,14 +141,11 @@ export const RainbowCompass = ({
   let arrowRotation;
   if (isCompassAvailable) {
     // Пчелка показывает напротив солнца (на радугу)
-    arrowRotation = (sunPosition?.azimuth || 0) + 180 - deviceHeading;
+    arrowRotation = ((sunPosition?.azimuth || 0) + 180 - deviceHeading + 360) % 360;
   } else {
     // Статичный режим: пчелка просто указывает напротив солнца
     arrowRotation = (sunPosition?.azimuth || 0) + 180;
   }
-  
-  // Нормализуем угол
-  arrowRotation = ((arrowRotation % 360) + 360) % 360;
   
   // 🔍 СУПЕР-ДЕТАЛЬНАЯ ОТЛАДКА
   console.log('=== 🐝💞 КОМПАС ДЛЯ КАТИ ===');
@@ -152,7 +156,7 @@ export const RainbowCompass = ({
   console.log('🔄 CSS поворот пчелки:', arrowRotation, '°');
   
   const sunRotation = isCompassAvailable 
-    ? (sunPosition?.azimuth || 0) - deviceHeading
+    ? ((sunPosition?.azimuth || 0) - deviceHeading + 360) % 360
     : (sunPosition?.azimuth || 0);
   console.log('☀️ CSS поворот солнца:', sunRotation, '°');
   console.log('🎯 CSS разница (должна быть ~180°):', Math.abs(arrowRotation - sunRotation));
@@ -312,7 +316,7 @@ export const RainbowCompass = ({
                                 styles.northIndicator,
                                 {
                                   transform: [{ 
-                                    rotate: `${-deviceHeading}deg` 
+                                    rotate: `${-(deviceHeading - northOffset)}deg` 
                                   }]
                                 }
                               ]}
@@ -419,7 +423,14 @@ export const RainbowCompass = ({
                             <Text style={styles.calibrationText}>
                               💡 Совет: для точности отойдите от металлических предметов и WiFi роутеров
                             </Text>
-
+                            <TouchableOpacity 
+                              style={styles.calibrateButton}
+                              onPress={calibrateNorth}
+                            >
+                              <Text style={styles.calibrateButtonText}>
+                                🎯 Калибровать север (сейчас: {Math.round(deviceHeading)}°)
+                              </Text>
+                            </TouchableOpacity>
                           </View>
                         )}
     </View>
@@ -678,6 +689,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     marginBottom: 10,
+  },
+  
+  calibrateButton: {
+    marginTop: 10,
+    padding: 8,
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  
+  calibrateButtonText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: 'bold',
   },
   
 
