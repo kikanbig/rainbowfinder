@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Magnetometer } from 'expo-sensors';
+import { Compass } from 'react-native-sensors';
 
 const { width } = Dimensions.get('window');
 const COMPASS_SIZE = Math.min(width * 0.7, 280);
@@ -28,24 +29,21 @@ export const RainbowCompass = ({
     };
   }, []);
   
-  // Инициализация компаса
+  // Инициализация компаса с react-native-sensors
   const initializeCompass = async () => {
     try {
-      // Проверяем доступность магнитометра
-      const isAvailable = await Magnetometer.isAvailableAsync();
+      // Проверяем доступность компаса
+      const isAvailable = await Compass.isAvailable();
       
       if (isAvailable) {
         setIsCompassAvailable(true);
         
-        // Устанавливаем частоту обновления
-        Magnetometer.setUpdateInterval(100); // 10 раз в секунду
+        // Подписываемся на данные компаса
+        subscription.current = Compass.addListener(handleCompassUpdate);
         
-        // Подписываемся на данные магнитометра
-        subscription.current = Magnetometer.addListener(handleMagnetometerUpdate);
-        
-        console.log('🧭 Компас успешно инициализирован');
+        console.log('🧭 Компас react-native-sensors успешно инициализирован');
       } else {
-        console.log('⚠️ Магнитометр недоступен на этом устройстве');
+        console.log('⚠️ Компас недоступен на этом устройстве');
         setIsCompassAvailable(false);
       }
     } catch (error) {
@@ -54,12 +52,10 @@ export const RainbowCompass = ({
     }
   };
   
-  // Обработка данных магнитометра (С ФИЛЬТРАЦИЕЙ)
-  const handleMagnetometerUpdate = (data) => {
-    setMagnetometerData(data);
-    
-    // Вычисляем направление устройства (азимут)
-    const heading = calculateHeading(data);
+  // Обработка данных компаса (react-native-sensors)
+  const handleCompassUpdate = (data) => {
+    // data.heading содержит направление в градусах (0-360)
+    const heading = data.heading;
     
     // Фильтруем резкие изменения (стабилизация)
     const currentHeading = deviceHeading;
@@ -69,20 +65,11 @@ export const RainbowCompass = ({
     if (headingDiff < 30 || currentHeading === 0) {
       setDeviceHeading(heading);
     }
+    
+    console.log('🧭 Компас данные:', { heading, deviceHeading: currentHeading, diff: headingDiff });
   };
   
-  // Вычисление направления устройства в градусах
-  const calculateHeading = (data) => {
-    if (Platform.OS === 'ios') {
-      // На iOS используем стандартную формулу
-      let heading = Math.atan2(data.y, data.x) * (180 / Math.PI);
-      return heading >= 0 ? heading : heading + 360;
-    } else {
-      // На Android может потребоваться другая формула
-      let heading = Math.atan2(-data.y, data.x) * (180 / Math.PI);
-      return heading >= 0 ? heading : heading + 360;
-    }
-  };
+
   
   // Отписка от датчиков
   const unsubscribe = () => {
@@ -234,13 +221,16 @@ export const RainbowCompass = ({
           {/* Центральная точка */}
           <View style={styles.centerDot} />
           
-                                    {/* "Радуга" напротив солнца (СТАТИЧНАЯ) */}
+                                    {/* "Радуга" напротив солнца (ДВИЖЕТСЯ С ТЕЛЕФОНОМ) */}
                           <View
                             style={[
                               styles.rainbowLabel,
                               {
                                 transform: [{ 
-                                  rotate: `${(sunPosition?.azimuth || 0) + 180}deg` 
+                                  rotate: `${isCompassAvailable 
+                                    ? ((sunPosition?.azimuth || 0) + 180 - deviceHeading + 360) % 360
+                                    : (sunPosition?.azimuth || 0) + 180
+                                  }deg` 
                                 }]
                               }
                             ]}
@@ -284,13 +274,16 @@ export const RainbowCompass = ({
             </View>
           </View>
           
-                                    {/* Индикатор солнца (СТАТИЧНЫЙ - показывает реальное положение солнца) */}
+                                    {/* Индикатор солнца (ДВИЖЕТСЯ С ТЕЛЕФОНОМ, ПОКАЗЫВАЕТ СОЛНЦЕ) */}
                           <View
                             style={[
                               styles.sunIndicator,
                               {
                                 transform: [{ 
-                                  rotate: `${sunPosition?.azimuth || 0}deg` 
+                                  rotate: `${isCompassAvailable 
+                                    ? ((sunPosition?.azimuth || 0) - deviceHeading + 360) % 360
+                                    : (sunPosition?.azimuth || 0)
+                                  }deg` 
                                 }]
                               }
                             ]}
@@ -298,10 +291,21 @@ export const RainbowCompass = ({
                             <Ionicons name="sunny" size={16} color="#f59e0b" />
                           </View>
           
-                                    {/* Индикатор севера (СТАТИЧНЫЙ - всегда показывает север) */}
-                          <View style={styles.northIndicator}>
-                            <Text style={styles.northText}>N</Text>
-                          </View>
+                                    {/* Индикатор севера (ДВИЖЕТСЯ С ТЕЛЕФОНОМ, ПОКАЗЫВАЕТ СЕВЕР) */}
+                          {isCompassAvailable && (
+                            <View
+                              style={[
+                                styles.northIndicator,
+                                {
+                                  transform: [{ 
+                                    rotate: `${(-deviceHeading + 360) % 360}deg` 
+                                  }]
+                                }
+                              ]}
+                            >
+                              <Text style={styles.northText}>N</Text>
+                            </View>
+                          )}
           
         </LinearGradient>
       </View>
