@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Magnetometer } from 'expo-sensors';
 import { Compass } from 'react-native-sensors';
 
 const { width } = Dimensions.get('window');
@@ -15,7 +14,6 @@ export const RainbowCompass = ({
   userLocation 
 }) => {
   
-  const [magnetometerData, setMagnetometerData] = useState({ x: 0, y: 0, z: 0 });
   const [deviceHeading, setDeviceHeading] = useState(0); // Текущее направление устройства
   const [isCompassAvailable, setIsCompassAvailable] = useState(false);
 
@@ -46,18 +44,8 @@ export const RainbowCompass = ({
         
         console.log('🧭 Компас react-native-sensors успешно инициализирован');
       } else {
-        console.log('⚠️ Компас недоступен, пробуем магнитометр...');
-        // Fallback на старый магнитометр
-        const magnetometerAvailable = await Magnetometer.isAvailableAsync();
-        if (magnetometerAvailable) {
-          setIsCompassAvailable(true);
-          Magnetometer.setUpdateInterval(100);
-          subscription.current = Magnetometer.addListener(handleMagnetometerUpdate);
-          console.log('🧭 Магнитометр успешно инициализирован (fallback)');
-        } else {
-          console.log('⚠️ Ни компас, ни магнитометр недоступны');
-          setIsCompassAvailable(false);
-        }
+        console.log('⚠️ Компас недоступен на этом устройстве');
+        setIsCompassAvailable(false);
       }
     } catch (error) {
       console.error('❌ Ошибка инициализации компаса:', error);
@@ -88,37 +76,7 @@ export const RainbowCompass = ({
     });
   };
   
-  // Fallback обработчик магнитометра
-  const handleMagnetometerUpdate = (data) => {
-    setMagnetometerData(data);
-    
-    // Вычисляем направление устройства (азимут)
-    const heading = calculateHeading(data);
-    
-    // Фильтруем резкие изменения (стабилизация)
-    const currentHeading = deviceHeading;
-    const headingDiff = Math.abs(heading - currentHeading);
-    
-    // Если изменение слишком резкое (>30°), игнорируем
-    if (headingDiff < 30 || currentHeading === 0) {
-      setDeviceHeading(heading);
-    }
-    
-    console.log('🧭 Магнитометр данные:', { heading, deviceHeading: currentHeading, diff: headingDiff });
-  };
-  
-  // Вычисление направления устройства в градусах (для fallback)
-  const calculateHeading = (data) => {
-    if (Platform.OS === 'ios') {
-      // На iOS используем стандартную формулу
-      let heading = Math.atan2(data.y, data.x) * (180 / Math.PI);
-      return heading >= 0 ? heading : heading + 360;
-    } else {
-      // На Android может потребоваться другая формула
-      let heading = Math.atan2(-data.y, data.x) * (180 / Math.PI);
-      return heading >= 0 ? heading : heading + 360;
-    }
-  };
+
   
 
   
